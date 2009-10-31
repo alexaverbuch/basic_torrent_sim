@@ -1,0 +1,38 @@
+##################################################################
+# Note: There should be at least one space between key and value #
+##################################################################
+
+### Scenario 1 ###
+type: monitor
+monitor: sicsim.dht.chord.DHTMonitor
+---
+### Scenario 2 ###
+type: lottery
+peer: sicsim.dht.chord.Peer
+link: sicsim.network.links.ReliableLink
+count: 50
+interval: 10
+join: 1
+leave: 0
+failure: 0
+---
+### Scenario 3 ###
+type: delay
+delay: 5000
+---
+### Scenario 4 ###
+type: lottery
+peer: sicsim.dht.chord.Peer
+link: sicsim.network.links.ReliableLink
+count: 400
+interval: 20
+join: 1
+leave: 0
+failure: 1
+---
+### Scenario 5 ###
+type: signal
+count: 100
+interval: 5
+signal: 1
+

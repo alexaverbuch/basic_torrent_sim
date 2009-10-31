@@ -1,0 +1,35 @@
+##################################################################
+# Note: There should be at least one space between key and value #
+##################################################################
+
+### Scenario 1 ###
+type: monitor
+monitor: ass1.common.TorrentMonitor
+---
+### Scenario 2 ###
+type: lottery
+peer: ass1.peers.Tracker
+link: sicsim.network.links.ReliableLink
+count: 1
+interval: 10
+join: 1
+leave: 0
+failure: 0
+---
+### Scenario 3 ###
+type: delay
+delay: 5000
+---
+### Scenario 4 ###
+type: lottery
+peer: ass1.peers.Peer
+link: sicsim.network.links.ReliableLink
+count: 5
+interval: 10
+join: 1
+leave: 0
+failure: 0
+---
+### Scenario 5 ###
+type: delay
+delay: 1000000
