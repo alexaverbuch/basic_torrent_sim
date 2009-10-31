@@ -21,7 +21,7 @@ import sicsim.types.NodeId;
 public class Tracker extends AbstractPeer {
 	// Chunks peers already have
 	// TODO can this be removed? maybe necessary when failures are considered?
-	private HashMap<NodeId, Boolean[]> peers = new HashMap<NodeId, Boolean[]>();
+//	private HashMap<NodeId, Boolean[]> peers = new HashMap<NodeId, Boolean[]>();
 	
 	// Directory of where to get next Chunks <-- faster lookup than "peers"
 	//TODO get seed from?
@@ -91,7 +91,7 @@ public class Tracker extends AbstractPeer {
 		
 		this.failureDetector.register(srcId, this.nodeId);
 		
-		this.peers.put(srcId, buffer);
+//		this.peers.put(srcId, buffer);
 		
 		System.out.println(	"Tracker Registered " + 
 							"Leecher [" + srcId + "]");
@@ -107,7 +107,7 @@ public class Tracker extends AbstractPeer {
 		
 		failureDetector.register(srcId, this.nodeId);
 		
-		peers.put(srcId, buffer);
+//		peers.put(srcId, buffer);
 		
 		System.out.println(	"Tracker Registered " + 
 							"Seeder [" + srcId + "]");
@@ -119,9 +119,9 @@ public class Tracker extends AbstractPeer {
 		
 		fileStatus.addSeeder(index, srcId);
 		
-		Boolean[] peerStatus = peers.get(srcId);
-		peerStatus[index] = true;
-		peers.put(srcId, peerStatus);
+//		Boolean[] peerStatus = peers.get(srcId);
+//		peerStatus[index] = true;
+//		peers.put(srcId, peerStatus);
 		
 		System.out.println(	"Tracker Put " + 
 							"Chunk [" + index + "] " + 

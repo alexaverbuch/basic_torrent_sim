@@ -99,8 +99,8 @@ public class Peer extends BandwidthPeer {
 		
 		if ( this.protocol.getNotYetDownloading() == 0) {
 			// All required chunks are already being downloaded/requested
-//			System.out.println(	"Peer [" + this.nodeId + "] " +
-//								"Ignore SYNC [Downloading Last Chunk...]");
+			System.out.println(	"Peer [" + this.nodeId + "] " +
+								"Ignore SYNC [Downloading Last Chunk...]");
 			return;
 		}
 		
@@ -127,9 +127,9 @@ public class Peer extends BandwidthPeer {
 	// From another Peer requesting a chunk from me
 	private void handleDownloadReqEvent(NodeId srcId, int chunkIndex) {
 		if ( protocol.commitToUpload(srcId,chunkIndex) ) {
-//			System.out.println(	"Peer [" + this.nodeId + "] Accepted Download Req " + 
-//								"From [" + srcId + "] " +
-//								"For Chunk [" + chunkIndex + "]" );
+			System.out.println(	"Peer [" + this.nodeId + "] Accepted Download Req " + 
+								"From [" + srcId + "] " +
+								"For Chunk [" + chunkIndex + "]" );
 								
 			this.startSendSegment(srcId,chunkIndex);
 			return;
@@ -138,9 +138,9 @@ public class Peer extends BandwidthPeer {
 		// Else, can not upload Chunk to Leecher
 		// Timeout occurred earlier during Handshake phase
 		// Do nothing, no NACK, no promise to keep/break, #async
-//		System.out.println(	"Peer [" + this.nodeId + "] Rejected Download Req " + 
-//							"From [" + srcId + "] " +
-//							"For Chunk [" + chunkIndex + "]" );
+		System.out.println(	"Peer [" + this.nodeId + "] Rejected Download Req " + 
+							"From [" + srcId + "] " +
+							"For Chunk [" + chunkIndex + "]" );
 	}
 
 //----------------------------------------------------------------------------------
@@ -193,28 +193,25 @@ public class Peer extends BandwidthPeer {
 		
 		String leecherStr = data.data.substring(0, data.data.indexOf(":"));
 		String chunkStr = data.data.substring(data.data.indexOf(":") + 1);
-//		System.out.println(	"Peer [" + this.nodeId + "] Finished Uploading " + 
-//							"Chunk [" + chunkStr + "] " +
-//							"To [" + leecherStr + "] " + 
-//							this.protocol.slotsStr() );
+		System.out.println(	"Peer [" + this.nodeId + "] Finished Uploading " + 
+							"Chunk [" + chunkStr + "] " +
+							"To [" + leecherStr + "] " + 
+							this.protocol.slotsStr() );
 	}
 	
 //----------------------------------------------------------------------------------
 	// Response from Tracker for Chunk Info
 	// Now send Handshake request to Seeder
 	private void handleGetChunkRespEvent(NodeId srcId, Message data) {
-		// TODO new changes may not be correct
-		
 		String seederStr = data.data.substring(0, data.data.indexOf(":") );
 		String chunkStr = data.data.substring(data.data.indexOf(":") + 1);
 		
 		if ( this.protocol.addHesitantDownload( new NodeId(seederStr), Integer.parseInt(chunkStr)) ) {
-			// TODO uncomment soon
-//			System.out.println(	"Peer [" + this.nodeId + "] Sent Handshake Req " +
-//					"To [" + seederStr + "] " +
-//					"For Chunk [" + chunkStr + "] " +
-//					this.protocol.slotsStr() +
-//					this.protocol.statusStr());		
+			System.out.println(	"Peer [" + this.nodeId + "] Sent Handshake Req " +
+					"To [" + seederStr + "] " +
+					"For Chunk [" + chunkStr + "] " +
+					this.protocol.slotsStr() +
+					this.protocol.statusStr());		
 
 			this.sendMsg(new NodeId(seederStr), new Message("HANDSHAKE_REQ", chunkStr));
 			
@@ -224,19 +221,19 @@ public class Peer extends BandwidthPeer {
 		}
 
 		// Else, can not handshake with Seeder
-//		System.out.println(	"Peer [" + this.nodeId + "] Can Not Attempt Handshake " + 
-//							"With [" + seederStr + "] " +
-//							"For Chunk [" + chunkStr + "]");  
+		System.out.println(	"Peer [" + this.nodeId + "] Can Not Attempt Handshake " + 
+							"With [" + seederStr + "] " +
+							"For Chunk [" + chunkStr + "]");  
 	}
 	
 //----------------------------------------------------------------------------------
 	// Receive Handshake request from Peer that wants to Leech a Chunk
 	private void handleHandshakeReqEvent(NodeId srcId, Message data) {
 		if ( protocol.addHesitantUpload(srcId, Integer.parseInt(data.data)) ) {
-//			System.out.println(	"Peer [" + this.nodeId + "] Accepted Handshake Request " + 
-//								"For Chunk [" + data.data + "] " +  
-//								"From [" + srcId + "] " + 
-//								"Hesitant Timeout Initialized");
+			System.out.println(	"Peer [" + this.nodeId + "] Accepted Handshake Request " + 
+								"For Chunk [" + data.data + "] " +  
+								"From [" + srcId + "] " + 
+								"Hesitant Timeout Initialized");
 
 			this.loopback(	new Message("HESITANT_UP_TIMEOUT", srcId + ":" + data.data), 
 							TorrentConfig.STANDARD_TIMEOUT);
@@ -245,12 +242,10 @@ public class Peer extends BandwidthPeer {
 			return;
 		}
 		// Else, can not upload Chunk to Leecher 
-		// Do nothing, no NACK, no promise to keep/break, #async
-//		System.out.println(	"Peer [" + this.nodeId + "] Rejected Handshake Request " + 
-//							"For Chunk [" + data.data + "] " +  
-//							"From [" + srcId + "]");
+		System.out.println(	"Peer [" + this.nodeId + "] Rejected Handshake Request " + 
+							"For Chunk [" + data.data + "] " +  
+							"From [" + srcId + "]");
 
-		// TODO new change may not be correct
 		this.sendMsg(srcId, new Message("HANDSHAKE_NACK", srcId + ":" + data.data));
 	}
 	
@@ -259,15 +254,11 @@ public class Peer extends BandwidthPeer {
 	private void handleHandshakeAckEvent(NodeId srcId, Message data) {
 		// TODO recent modifications may not be correct
 		
-//		if ( this.protocol.addHesitantDownload(srcId, Integer.parseInt(data.data)) ) {		
 		if ( this.protocol.hasHesitantDownload(srcId, Integer.parseInt(data.data)) ) {
-//			System.out.println(	"Peer [" + this.nodeId + "] Sent Download Request " + 
-//								"For Chunk [" + data.data + "] " +  
-//								"To [" + srcId + "] " + 
-//								"Hesitant Timeout Initialized");
-
-//			this.loopback(	new Message("HESITANT_DOWN_TIMEOUT", srcId + ":" + data.data), 
-//							TorrentConfig.STANDARD_TIMEOUT);
+			System.out.println(	"Peer [" + this.nodeId + "] Sent Download Request " + 
+								"For Chunk [" + data.data + "] " +  
+								"To [" + srcId + "] " + 
+								"Hesitant Timeout Initialized");
 
 			this.sendMsg(srcId, new Message("DOWNLOAD_CHUNK_REQ", data.data));
 			return;
@@ -275,9 +266,9 @@ public class Peer extends BandwidthPeer {
 		
 		// Else, can not download Chunk from Seeder
 		// Do nothing, no NACK, no promise to keep/break, #async
-//		System.out.println(	"Peer [" + this.nodeId + "] Aborted Hesitant Download " + 
-//							"For Chunk [" + data.data + "] " +  
-//							"To [" + srcId + "]");
+		System.out.println(	"Peer [" + this.nodeId + "] Aborted Hesitant Download " + 
+							"For Chunk [" + data.data + "] " +  
+							"To [" + srcId + "]");
 	}
 	
 //----------------------------------------------------------------------------------
