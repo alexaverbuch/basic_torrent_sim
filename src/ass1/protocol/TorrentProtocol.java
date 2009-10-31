@@ -7,6 +7,7 @@ import sicsim.types.NodeId;
 public class TorrentProtocol {
 	int downloaders = 0;
 	int uploaders = 0;
+	int requestsInFlight = 0;
 	
 	ArrayList<String> hesitantDownloads = new ArrayList<String>();	//"leecher:chunk"
 	ArrayList<String> hesitantUploads = new ArrayList<String>();	//"seeder:chunk"	
@@ -151,7 +152,8 @@ public class TorrentProtocol {
 		
 //		hesitantDownloads.remove(entryStr);
 		hesitantDownloads.remove(chunk.toString());
-		uploaders--;		
+		uploaders--;
+		requestsInFlight--;
 		return true;
 	}
 	
@@ -202,6 +204,7 @@ public class TorrentProtocol {
 //		activeDownloads.remove(entryStr);
 		activeDownloads.remove(chunk.toString());
 		uploaders--;		
+		requestsInFlight--;
 		return true;
 	}
 	
@@ -232,6 +235,7 @@ public class TorrentProtocol {
 		activeDownloads.remove(chunk.toString());
 		requiredChunks.remove(chunk.toString());
 		uploaders--;		
+		requestsInFlight--;
 		return true;
 	}
 	
@@ -251,6 +255,14 @@ public class TorrentProtocol {
 		return uploaders < TorrentConfig.MAX_NUM_UPLOADERS;
 	}
 	
+	public boolean tryMakeRequest() {
+		if (requestsInFlight < TorrentConfig.MAX_NUM_UPLOADERS) {
+			requestsInFlight++;
+			return true;
+		}
+		return false;
+	}
+	
 //	public String requiredChunksStr() {
 //		String chunksStr = "[-";
 //		for (int i = 0; i < requiredChunks.size(); i++) {
@@ -264,7 +276,7 @@ public class TorrentProtocol {
 		return 	"Downloaders [" + downloaders + "/" + TorrentConfig.MAX_NUM_DOWNLOADERS + "] " +
 				"Uploaders [" + uploaders + "/" + TorrentConfig.MAX_NUM_UPLOADERS + "] ";
 	}
-	
+
 	public String statusStr() {
 		String result = "";
 		for (int i = 0; i < TorrentConfig.CHUNK_COUNT; i++) {

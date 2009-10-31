@@ -24,7 +24,7 @@ delay: 5000
 type: lottery
 peer: ass1.peers.Peer
 link: sicsim.network.links.ReliableLink
-count: 3
+count: 50
 interval: 10
 join: 1
 leave: 0

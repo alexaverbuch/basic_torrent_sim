@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Random;
 
-import ass1.common.TorrentConfig;
+import ass1.common.TorrentConfig; 
 import ass1.protocol.TorrentProtocol;
 
 import sicsim.network.core.Bandwidth;
@@ -111,12 +111,20 @@ public class Peer extends BandwidthPeer {
 //								this.protocol.slotsStr() );
 			return;
 		}
+		
+		if ( this.protocol.tryMakeRequest() == false ) {
+			// Too many requests in progress already
+//			System.out.println(	"Peer [" + this.nodeId + "] " +					 
+//								"Ignore SYNC [Max Requests In Flight] " +
+//								this.protocol.slotsStr() );
+			return;
+		}
 
 		String selectNextChunkFrom = this.protocol.selectNextChunkFrom();
 		
-//		System.out.println(	"Peer [" + this.nodeId + "] Requesting Next Chunk From Tracker "
-////							+ "Select Next Chunk From [" + selectNextChunkFrom + "]"
-//							);
+		System.out.println(	"Peer [" + this.nodeId + "] Requesting Next Chunk From Tracker " +
+//							"Select Next Chunk From [" + selectNextChunkFrom + "] "
+							this.protocol.slotsStr());
 		if (selectNextChunkFrom != null) {
 			this.sendMsg( 	TorrentConfig.TRACKER, 
 							new Message("GET_CHUNK_REQ", selectNextChunkFrom ) );
@@ -223,7 +231,8 @@ public class Peer extends BandwidthPeer {
 		// Else, can not handshake with Seeder
 		System.out.println(	"Peer [" + this.nodeId + "] Can Not Attempt Handshake " + 
 							"With [" + seederStr + "] " +
-							"For Chunk [" + chunkStr + "]");  
+							"For Chunk [" + chunkStr + "] " +
+							this.protocol.slotsStr());  
 	}
 	
 //----------------------------------------------------------------------------------
@@ -278,8 +287,8 @@ public class Peer extends BandwidthPeer {
 		String chunkStr = data.data.substring(data.data.indexOf(":") + 1);
 		
 		if ( protocol.cancelHesitantDownload(new NodeId(seederStr), Integer.parseInt(chunkStr)) ) {
-//			System.out.println(	"NACK! Peer [" + this.nodeId + "] " +
-//								"Hesitant Download [" + seederStr + ":" + chunkStr + "]" );
+			System.out.println(	"NACK! Peer [" + this.nodeId + "] " +
+								"Hesitant Download [" + seederStr + ":" + chunkStr + "]" );
 		}
 	}	
 	
@@ -290,8 +299,8 @@ public class Peer extends BandwidthPeer {
 		String chunkStr = data.data.substring(data.data.indexOf(":") + 1);
 		
 		if ( protocol.cancelHesitantUpload(new NodeId(leecherStr), Integer.parseInt(chunkStr)) ) {
-//			System.out.println(	"TIMEOUT! Peer [" + this.nodeId + "] " +
-//								"Hesitant Upload [" + leecherStr + ":" + chunkStr + "]" );
+			System.out.println(	"TIMEOUT! Peer [" + this.nodeId + "] " +
+								"Hesitant Upload [" + leecherStr + ":" + chunkStr + "]" );
 		}
 	}
 	
@@ -302,8 +311,8 @@ public class Peer extends BandwidthPeer {
 		String chunkStr = data.data.substring(data.data.indexOf(":") + 1);
 		
 		if ( protocol.cancelHesitantDownload(new NodeId(seederStr), Integer.parseInt(chunkStr)) ) {
-//			System.out.println(	"TIMEOUT! Peer [" + this.nodeId + "] " +
-//								"Hesitant Download [" + seederStr + ":" + chunkStr + "]" );
+			System.out.println(	"TIMEOUT! Peer [" + this.nodeId + "] " +
+								"Hesitant Download [" + seederStr + ":" + chunkStr + "]" );
 		}
 	}	
 	
@@ -314,8 +323,8 @@ public class Peer extends BandwidthPeer {
 		String chunkStr = data.data.substring(data.data.indexOf(":") + 1);
 		
 		if ( this.protocol.cancelDownload(srcId, Integer.parseInt(chunkStr)) ) {
-//			System.out.println(	"TIMEOUT! Peer [" + this.nodeId + "] " +
-//								"Download [" + seederStr + ":" + chunkStr + "]" );
+			System.out.println(	"TIMEOUT! Peer [" + this.nodeId + "] " +
+								"Download [" + seederStr + ":" + chunkStr + "]" );
 		}
 	}	
 	
