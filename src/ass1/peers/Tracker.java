@@ -20,7 +20,7 @@ import sicsim.types.NodeId;
 
 public class Tracker extends AbstractPeer {
 	// Directory of where to get next Chunks
-	private GlobalFileStatus fileStatus = new GlobalFileStatus(TorrentConfig.CHUNK_COUNT, TorrentConfig.SEED); 
+	private GlobalFileStatus fileStatus = new GlobalFileStatus(TorrentConfig.CHUNK_COUNT, TorrentConfig.SEED);
 	
 //----------------------------------------------------------------------------------
 	public void init(NodeId nodeId, AbstractLink link, Bandwidth bandwidth, FailureDetector failureDetector, OverlayNetwork overlay, Monitor monitor) {
@@ -114,7 +114,8 @@ public class Tracker extends AbstractPeer {
 		
 		System.out.println(	"Tracker Put " + 
 							"Chunk [" + index + "] " + 
-							"For Peer [" + srcId + "]");
+							"For Peer [" + srcId + "]\n" +
+							fileStatus.toString());
 	}
 	
 //----------------------------------------------------------------------------------

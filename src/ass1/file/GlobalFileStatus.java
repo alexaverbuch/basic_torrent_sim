@@ -49,6 +49,14 @@ public class GlobalFileStatus {
 		}		
 	}
 	
+	public String chunksToString() {
+		return null;
+	}
+	
+	public String peersToString() {
+		return null;
+	}
+	
 	public String toString() {
 		String str = "---FileStatus---\n";
 		Iterator<GlobalChunkStatus> chunksIter = this.chunks.iterator();
