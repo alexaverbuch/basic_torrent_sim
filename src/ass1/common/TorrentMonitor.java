@@ -1,12 +1,8 @@
 package ass1.common;
 
-import java.util.Iterator;
-
 import ass1.peers.Peer;
-
 import sicsim.network.core.Monitor;
 import sicsim.types.NodeId;
-import sicsim.utils.FileIO;
 
 public class TorrentMonitor extends Monitor {
 	

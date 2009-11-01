@@ -14,8 +14,8 @@ public class GlobalChunkStatus {
 	public GlobalChunkStatus(int iD, long seed) {
 		super();
 		ID = iD;
-//		RNG = new Random(seed);
-		RNG = new Random();
+		RNG = new Random(seed);
+//		RNG = new Random();
 	}
 	
 	public int getID() {
@@ -23,10 +23,15 @@ public class GlobalChunkStatus {
 	}
 	
 	public boolean addSeeder(NodeId seeder) {
+		if (seeders.contains(seeder) == true) {
+			return false;	
+		}
 		return seeders.add(seeder);
 	}
 	
-	//TODO removeSeeder()? 
+	public boolean removeSeeder(NodeId seeder) {
+		return seeders.remove(seeder);
+	}
 	
 	public NodeId getRandomSeeder() {
 		if (seeders.size() == 0)

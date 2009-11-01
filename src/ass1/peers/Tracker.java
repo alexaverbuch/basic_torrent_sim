@@ -19,12 +19,7 @@ import sicsim.types.Message;
 import sicsim.types.NodeId;
 
 public class Tracker extends AbstractPeer {
-	// Chunks peers already have
-	// TODO can this be removed? maybe necessary when failures are considered?
-//	private HashMap<NodeId, Boolean[]> peers = new HashMap<NodeId, Boolean[]>();
-	
-	// Directory of where to get next Chunks <-- faster lookup than "peers"
-	//TODO get seed from?
+	// Directory of where to get next Chunks
 	private GlobalFileStatus fileStatus = new GlobalFileStatus(TorrentConfig.CHUNK_COUNT, TorrentConfig.SEED); 
 	
 //----------------------------------------------------------------------------------
@@ -54,8 +49,10 @@ public class Tracker extends AbstractPeer {
 	public void failure(NodeId failedId, long currentTime) {
 		System.out.println(	"Tracker [" + this.nodeId + "] " + 
 							"Detects Failure Of [" + failedId + "] " + 
-							"At Time [" + currentTime + "]");
-		//TODO remove failed node from FileStatus?
+							"At Time [" + currentTime + "] BOOM");
+		
+		//TODO Uwe/Alex check if this is correct
+		fileStatus.removeSeeder(failedId);
 	}
 	
 //----------------------------------------------------------------------------------
@@ -69,16 +66,16 @@ public class Tracker extends AbstractPeer {
 	}
 	
 //----------------------------------------------------------------------------------
-	//TODO implement
 	public void signal(int signal, long currentTime) {
 		switch (signal) {
 		case 1:
-			//TODO print current file status?
-			//this.sendMsg(randomNode, new Message("SIGNAL", data2));
+			// TODO should we have any signals to our nodes?
+			// Maybe useful later during experiments 
+			// Maybe print current file status for debugging purpose
 			break;
 		default:
-			System.out.println("Tracker [" + this.nodeId + "] " +
-					"Unknown Signal [" + signal + "]");				
+			System.out.println(	"Tracker [" + this.nodeId + "] " +
+								"Unknown Signal [" + signal + "]");				
 		}
 	}
 
@@ -90,9 +87,7 @@ public class Tracker extends AbstractPeer {
 		}
 		
 		this.failureDetector.register(srcId, this.nodeId);
-		
-//		this.peers.put(srcId, buffer);
-		
+
 		System.out.println(	"Tracker Registered " + 
 							"Leecher [" + srcId + "]");
 	}
@@ -107,8 +102,6 @@ public class Tracker extends AbstractPeer {
 		
 		failureDetector.register(srcId, this.nodeId);
 		
-//		peers.put(srcId, buffer);
-		
 		System.out.println(	"Tracker Registered " + 
 							"Seeder [" + srcId + "]");
 }
@@ -118,10 +111,6 @@ public class Tracker extends AbstractPeer {
 		Integer index = Integer.parseInt(data.data);
 		
 		fileStatus.addSeeder(index, srcId);
-		
-//		Boolean[] peerStatus = peers.get(srcId);
-//		peerStatus[index] = true;
-//		peers.put(srcId, peerStatus);
 		
 		System.out.println(	"Tracker Put " + 
 							"Chunk [" + index + "] " + 
@@ -168,7 +157,10 @@ public class Tracker extends AbstractPeer {
 	}
 
 //----------------------------------------------------------------------------------
-	//TODO what does this do?
+	// TODO Uwe/Alex find out what this does
+	// Is this used to:
+	// --> Simulate crash/recovery?
+	// --> ...?
 	public void restore(String str) {
 //		String friendsList = PatternMatching.getStrValue(str, "friends:");
 //		String friendParts[] = friendsList.split(",");
@@ -183,10 +175,14 @@ public class Tracker extends AbstractPeer {
 
 //----------------------------------------------------------------------------------
 	public void syncMethod(long currentTime) {
-	}
+		// TODO Uwe/Alex find out if Tracker needs any "polling" type activity
+		// Alex: can't think of anything, Tracker seems to just be a passive server
+	}	
 
 //----------------------------------------------------------------------------------
 	public String toString() {
+		// TODO Use this somewhere?
+		// Alex: For debugging if necessary, but its formatting can be improved
     	return fileStatus.toString();
 	}
 //----------------------------------------------------------------------------------

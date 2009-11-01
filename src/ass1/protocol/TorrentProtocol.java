@@ -9,10 +9,11 @@ public class TorrentProtocol {
 	int uploaders = 0;
 	int requestsInFlight = 0;
 	
+	ArrayList<String> friends = new ArrayList<String>();			//Nodes I know
 	ArrayList<String> hesitantDownloads = new ArrayList<String>();	//"leecher:chunk"
 	ArrayList<String> hesitantUploads = new ArrayList<String>();	//"seeder:chunk"	
 	ArrayList<String> activeDownloads = new ArrayList<String>();	//"seeder:chunk"	
-	ArrayList<String> requiredChunks = new ArrayList<String>();		//chunkIndex
+	ArrayList<String> requiredChunks = new ArrayList<String>();		//chunkIndexStr
 	
 	NodeId nodeId = null;
 	
@@ -23,6 +24,91 @@ public class TorrentProtocol {
 			for (int i = 0; i < TorrentConfig.CHUNK_COUNT; i++) {
 				requiredChunks.add(Integer.toString(i));
 			}
+		}
+	}
+	
+	// Currently "friends" only ensures: 
+	// --> We only register with failureDetector once per peer
+	// --> --> multiple failureDetector.register(peer) causes multiple notifications (dumb)
+	public boolean addFriend(String friend) {
+		if ( friends.contains(friend) == false ) {
+			friends.add(friend);
+			return true;
+		}
+		
+		return false;
+	}
+	
+	public void cleanupFriendFailure(String friend) {
+		// Entries should never be in hesitantDownloads AND activeDownloads simultaneously
+		// So conflicts should not occur
+		
+		// Cleanup hesitantDownloads
+		cleanupHesitantDownloads(friend);
+		
+		// Cleanup activeDownloads
+		cleanupActiveDownloads(friend);
+		
+		// Cleanup hesitantUploads
+		cleanupHesitantUploads(friend);
+	}
+	
+	private void cleanupHesitantDownloads(String friend) {
+		// Cleanup hesitantDownloads
+		ArrayList<String> hesitantDownloadsToRemove = new ArrayList<String>();
+		
+		for (int i = 0; i < hesitantDownloads.size(); i++) {
+			String tempHesDown = hesitantDownloads.get(i);
+			
+			String seederStr = tempHesDown.substring(0, tempHesDown.indexOf(":") );
+			if ( seederStr.equals(friend) ) {
+				hesitantDownloadsToRemove.add(tempHesDown);
+			}
+		}
+
+		for (String hesDown : hesitantDownloadsToRemove) {
+			hesitantDownloads.remove(hesDown);
+			uploaders--;
+			requestsInFlight--;
+		}
+	}
+	
+	private void cleanupActiveDownloads(String friend) {
+		// Cleanup activeDownloads
+		ArrayList<String> activeDownloadsToRemove = new ArrayList<String>();
+		
+		for (int i = 0; i < activeDownloads.size(); i++) {
+			String tempActDown = activeDownloads.get(i);
+			
+			String seederStr = tempActDown.substring(0, tempActDown.indexOf(":") );
+			if ( seederStr.equals(friend) ) {
+				activeDownloadsToRemove.add(tempActDown);
+			}
+		}
+
+		for (String actDown : activeDownloadsToRemove) {
+			activeDownloads.remove(actDown);
+			uploaders--;		
+			requestsInFlight--;
+		}
+	}
+	
+	private void cleanupHesitantUploads(String friend) {
+		// Cleanup hesitantUploads
+		ArrayList<String> hesitantUploadsToRemove = new ArrayList<String>();
+		
+		for (int i = 0; i < hesitantUploads.size(); i++) {
+			String tempHesUp = hesitantUploads.get(i);
+			
+			String leecherStr = tempHesUp.substring(0, tempHesUp.indexOf(":") );
+			if ( leecherStr.equals(friend) ) {
+				hesitantUploadsToRemove.add(tempHesUp);
+			}
+		}
+
+		for (String hesUp : hesitantUploadsToRemove) {
+			hesitantUploads.remove(hesUp);
+			downloaders--;		
 		}
 	}
 	
@@ -88,29 +174,26 @@ public class TorrentProtocol {
 	// --> Enough download slots (uploaders) are available
 	// TRUE implies a download will be attempted
 	public boolean addHesitantDownload(NodeId seeder, Integer chunk) {
-		// TODO seeder not used at present, maybe this will need to change
-		// Each chunk should only be downloaded form one seeder in this protocol
-
 		if ( uploaders >= TorrentConfig.MAX_NUM_UPLOADERS ) {
 			return false;
 		}
 		
-//		String entryStr = seeder + ":" + chunk;
+		String entryStr = seeder + ":" + chunk;
 		
-//		if ( hesitantDownloads.contains(entryStr) == true ) {
-		if ( hesitantDownloads.contains(chunk.toString()) == true ) {
+		if ( hesitantDownloads.contains(entryStr) == true ) {
+//		if ( hesitantDownloads.contains(chunk.toString()) == true ) {
 			// Already trying to download this chunk
 			return false;
 		}
 		
-//		if ( activeDownloads.contains(entryStr) == true ) {
-		if ( activeDownloads.contains(chunk.toString()) == true ) {
+		if ( activeDownloads.contains(entryStr) == true ) {
+//		if ( activeDownloads.contains(chunk.toString()) == true ) {
 			// Download of this chunk is in progress already 
 			return false;
 		}
 		
-//		hesitantDownloads.add(entryStr);
-		hesitantDownloads.add(chunk.toString());
+		hesitantDownloads.add(entryStr);
+//		hesitantDownloads.add(chunk.toString());
 		uploaders++;		
 		return true;
 	}	
@@ -121,13 +204,10 @@ public class TorrentProtocol {
 	// --> Timeout has not occurred yet
 	// --> Download request can continue
 	public boolean hasHesitantDownload(NodeId seeder, Integer chunk) {
-		// TODO seeder not used at present, maybe this will need to change
-		// Each chunk should only be downloaded form one seeder in this protocol
+		String entryStr = seeder + ":" + chunk;
 		
-//		String entryStr = seeder + ":" + chunk;
-		
-//		if ( hesitantDownloads.contains(entryStr) == false ) {
-		if ( hesitantDownloads.contains(chunk.toString()) == false ) {
+		if ( hesitantDownloads.contains(entryStr) == false ) {
+//		if ( hesitantDownloads.contains(chunk.toString()) == false ) {
 			// Timeout must have already occurred
 			return false;
 		}
@@ -139,19 +219,16 @@ public class TorrentProtocol {
 	// --> Entry existed (and was removed)
 	// TRUE implies timeout occurred & download will be terminated
 	public boolean cancelHesitantDownload(NodeId seeder, Integer chunk) {
-		// TODO seeder not used at present, maybe this will need to change
-		// Each chunk should only be downloaded form one seeder in this protocol
+		String entryStr = seeder + ":" + chunk;
 		
-//		String entryStr = seeder + ":" + chunk;
-		
-//		if ( hesitantDownloads.contains(entryStr) == false ) {
-		if ( hesitantDownloads.contains(chunk.toString()) == false ) {
+		if ( hesitantDownloads.contains(entryStr) == false ) {
+//		if ( hesitantDownloads.contains(chunk.toString()) == false ) {
 			// Progress was already made, good
 			return false;
 		}
 		
-//		hesitantDownloads.remove(entryStr);
-		hesitantDownloads.remove(chunk.toString());
+		hesitantDownloads.remove(entryStr);
+//		hesitantDownloads.remove(chunk.toString());
 		uploaders--;
 		requestsInFlight--;
 		return true;
@@ -161,27 +238,25 @@ public class TorrentProtocol {
 	// --> Entry existed in hesitantDownloads (and was removed)
 	// TRUE implies timeout had not yet occurred & download will begin as planned
 	public boolean commitToDownload(NodeId seeder, Integer chunk) {
-		// TODO seeder not used at present, maybe this will need to change
-		// Each chunk should only be downloaded from one seeder in this protocol
+		String entryStr = seeder + ":" + chunk;
 		
-//		String entryStr = seeder + ":" + chunk;
-		
-//		if ( hesitantDownloads.contains(entryStr) == false ) {
-		if ( hesitantDownloads.contains(chunk.toString()) == false ) {
+		if ( hesitantDownloads.contains(entryStr) == false ) {
+//		if ( hesitantDownloads.contains(chunk.toString()) == false ) {
 			// Timeout has already occurred, fail
 			return false;
 		}
 		
-//		if ( activeDownloads.contains(entryStr) == true ) {
-		if ( activeDownloads.contains(chunk.toString()) == true ) {
+		if ( activeDownloads.contains(entryStr) == true ) {
+//		if ( activeDownloads.contains(chunk.toString()) == true ) {
 			// Download of this chunk is already in progress
 			return false;
 		}
 		
-//		hesitantDownloads.remove(entryStr);
-		hesitantDownloads.remove(chunk.toString());
+		hesitantDownloads.remove(entryStr);
+//		hesitantDownloads.remove(chunk.toString());
 		
-		activeDownloads.add(chunk.toString());
+		activeDownloads.add(entryStr);
+//		activeDownloads.add(chunk.toString());
 		
 		return true;
 	}
@@ -190,19 +265,16 @@ public class TorrentProtocol {
 	// --> Entry existed (and was removed)
 	// TRUE implies timeout occurred & download will be terminated
 	public boolean cancelDownload(NodeId seeder, Integer chunk) {
-		// TODO seeder not used at present, maybe this will need to change
-		// Each chunk should only be downloaded form one seeder in this protocol
+		String entryStr = seeder + ":" + chunk;
 		
-//		String entryStr = seeder + ":" + chunk;
-		
-//		if ( activeDownloads.contains(entryStr) == false ) {
-		if ( activeDownloads.contains(chunk.toString()) == false ) {
+		if ( activeDownloads.contains(entryStr) == false ) {
+//		if ( activeDownloads.contains(chunk.toString()) == false ) {
 			// Can't abort a download that doesn't exist
 			return false;
 		}
 		
-//		activeDownloads.remove(entryStr);
-		activeDownloads.remove(chunk.toString());
+		activeDownloads.remove(entryStr);
+//		activeDownloads.remove(chunk.toString());
 		uploaders--;		
 		requestsInFlight--;
 		return true;
@@ -213,13 +285,10 @@ public class TorrentProtocol {
 	// --> Entry existed in requiredChunks (and was removed)
 	// TRUE implies download completed succcessfully & state has been updated
 	public boolean successfulDownload(NodeId seeder, Integer chunk) {
-		// TODO seeder not used at present, maybe this will need to change
-		// Each chunk should only be downloaded form one seeder in this protocol
+		String entryStr = seeder + ":" + chunk;
 		
-//		String entryStr = seeder + ":" + chunk;
-		
-//		if ( activeDownloads.contains(entryStr) == false ) {
-		if ( activeDownloads.contains(chunk.toString()) == false ) {
+		if ( activeDownloads.contains(entryStr) == false ) {
+//		if ( activeDownloads.contains(chunk.toString()) == false ) {
 			// Can't complete download that doesn't exist
 			// Either never started, or timed out
 			return false;
@@ -231,8 +300,8 @@ public class TorrentProtocol {
 			return false;
 		}
 		
-//		activeDownloads.remove(entryStr);
-		activeDownloads.remove(chunk.toString());
+		activeDownloads.remove(entryStr);
+//		activeDownloads.remove(chunk.toString());
 		requiredChunks.remove(chunk.toString());
 		uploaders--;		
 		requestsInFlight--;
@@ -280,10 +349,12 @@ public class TorrentProtocol {
 	public String statusStr() {
 		String result = "";
 		for (int i = 0; i < TorrentConfig.CHUNK_COUNT; i++) {
+
 			if ( requiredChunks.contains(Integer.toString(i)) == false )  {
 				// have already
 				result += "+";
-			} else if ( activeDownloads.contains(Integer.toString(i)) == true )  {
+//			} else if ( activeDownloads.contains(Integer.toString(i)) == true )  {
+			} else if ( activeDownContains(Integer.toString(i)) == true )  {
 				// downloading
 				result += "~";
 			} else {
@@ -299,6 +370,17 @@ public class TorrentProtocol {
 		}
 		 
 		return result;  
+	}
+	
+	private boolean activeDownContains(String chunkIndex) {
+		for (int i = 0; i < activeDownloads.size(); i++) {
+			String entryStr = activeDownloads.get(i);
+			String chunkStr = entryStr.substring(entryStr.indexOf(":") + 1);
+			if ( chunkIndex.equals(chunkStr) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 	
 	public String selectNextChunkFrom() {
