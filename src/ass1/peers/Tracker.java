@@ -52,7 +52,8 @@ public class Tracker extends AbstractPeer {
 							"At Time [" + currentTime + "] BOOM");
 		
 		//TODO Uwe/Alex check if this is correct
-		fileStatus.removeSeeder(failedId);
+		System.out.println(	"Tracker [" + this.nodeId + "] " + 
+							fileStatus.removeSeeder(failedId));
 	}
 	
 //----------------------------------------------------------------------------------

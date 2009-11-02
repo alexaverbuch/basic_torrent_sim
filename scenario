@@ -40,9 +40,9 @@ peer: ass1.peers.Peer
 link: sicsim.network.links.ReliableLink
 count: 50
 interval: 10
-join: 47
+join: 30
 leave: 0
-failure: 3
+failure: 20
 ---
 ### Scenario 7 ###
 type: delay

@@ -41,12 +41,21 @@ public class GlobalFileStatus {
 		return chunk.addSeeder(seeder);
 	}
 	
-	public void removeSeeder(NodeId seeder) {
+	public String removeSeeder(NodeId seeder) {
+		String result = "\n";
 		for (int i = 0; i < TorrentConfig.CHUNK_COUNT; i++) {
-			GlobalChunkStatus tempChunkStatus = chunks.remove(i);
-			tempChunkStatus.removeSeeder(seeder);
-			chunks.add(tempChunkStatus);
+//			GlobalChunkStatus tempChunkStatus = chunks.remove(i);
+//			result += "BEFORE[" + seeder + "]" + tempChunkStatus.toString()+"\n";
+//			tempChunkStatus.removeSeeder(seeder);
+//			result += "AFTER [" + seeder + "]" + tempChunkStatus.toString()+"\n";
+//			chunks.add(tempChunkStatus);
+			GlobalChunkStatus tempChunkStatusBefore = chunks.get(i);
+			result += "BEFORE[" + seeder + "]" + tempChunkStatusBefore.toString()+"\n";
+			tempChunkStatusBefore.removeSeeder(seeder);
+			GlobalChunkStatus tempChunkStatusAfter = chunks.get(i);
+			result += "AFTER [" + seeder + "]" + tempChunkStatusAfter.toString()+"\n";
 		}		
+		return result;
 	}
 	
 	public String chunksToString() {
