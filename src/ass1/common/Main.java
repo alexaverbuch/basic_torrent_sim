@@ -18,12 +18,18 @@
 
 package ass1.common;
 
+import org.apache.log4j.Logger;
+import org.apache.log4j.PropertyConfigurator;
+
 import sicsim.config.SicsimConfig;
 import sicsim.core.scheduler.SicSim;
 
 public class Main {
+	static Logger logger = Logger.getLogger(Main.class);
 
 	public static void main(String[] args) {
+		PropertyConfigurator.configureAndWatch("log4j.properties");
+
 		SicsimConfig.loadConfig();
 		SicSim sim = new SicSim();
 		sim.runTill(SicsimConfig.SIM_TIME);
