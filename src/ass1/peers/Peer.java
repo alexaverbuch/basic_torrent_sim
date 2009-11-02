@@ -19,7 +19,7 @@ public class Peer extends BandwidthPeer {
 	static Logger logger = Logger.getLogger(Peer.class);
 
 	// Protocol logic & state is maintained in this badboy
-	private TorrentProtocol protocol;
+	public TorrentProtocol protocol;
 
 	// Used to reduce repetitive printouts so output log is shorter
 	// Seeder only prints ***SEEDING*** once
@@ -37,7 +37,7 @@ public class Peer extends BandwidthPeer {
 
 	// ----------------------------------------------------------------------------------
 	public void create(long currentTime) {
-		logger.error(String.format("Peer [%s] created [%d]", this.nodeId,
+		logger.debug(String.format("Peer [%s] created [%d]", this.nodeId,
 				currentTime));
 	}
 
@@ -55,14 +55,14 @@ public class Peer extends BandwidthPeer {
 			this.sendMsg(TorrentConfig.TRACKER, new Message("REGISTER_SEED",
 					null));
 
-			logger.error(String.format("Peer [%s] (Seeder) joined [%d] [%s]",
+			logger.debug(String.format("Peer [%s] (Seeder) joined [%d] [%s]",
 					this.nodeId, currentTime, protocol.statusStr()));
 		} else {
 			protocol = new TorrentProtocol(nodeId, false);
 
 			this.sendMsg(TorrentConfig.TRACKER, new Message("REGISTER", null));
 
-			logger.error(String.format("Peer [%s] (Leecher) joined [%d] %s",
+			logger.debug(String.format("Peer [%s] (Leecher) joined [%d] %s",
 					this.nodeId, currentTime, protocol.statusStr()));
 		}
 
@@ -71,14 +71,24 @@ public class Peer extends BandwidthPeer {
 
 	// ----------------------------------------------------------------------------------
 	public void leave(long currentTime) {
-		// FIXME Uwe/Alex will we every leave?
-		// If we do, should we:
-		// --> Notify up/downloaders
-		// --> Treat it as failure (is this possible?). Rely on failureDetector
-		// --> --> This seems elegant & simple to me, but I don't know if it's
-		// possible
+		logger.info(String.format("Peer [%s] Leaving...",this.nodeId));
+		
+//		update protocol to not do anything else in future
+		
+		this.broadcast(new Message("LEAVE", null));
+		this.sendSim(new Message("LEAVE GRANTED", null));	
 	}
 
+	// ----------------------------------------------------------------------------------
+	// From Peer
+	// Notification that they have left the network
+	private void handleLeaveEvent(NodeId srcId) {
+		this.protocol.cleanupFriendFailure(srcId.toString());
+
+		logger.info(String.format("Peer [%s] detected leave of [%s] %s",
+				this.nodeId, srcId, protocol.statusStr()));
+	}
+	
 	// ----------------------------------------------------------------------------------
 	public void failure(NodeId failedId, long currentTime) {
 		this.protocol.cleanupFriendFailure(failedId.toString());
@@ -86,7 +96,7 @@ public class Peer extends BandwidthPeer {
 		logger.info(String.format("Peer [%s] detected failure of [%s] %s",
 				this.nodeId, failedId, protocol.statusStr()));
 	}
-
+	
 	// ----------------------------------------------------------------------------------
 	public void receive(NodeId srcId, Message data, long currentTime) {
 		if (this.listeners.containsKey(data.type))
@@ -98,15 +108,11 @@ public class Peer extends BandwidthPeer {
 
 	// ----------------------------------------------------------------------------------
 	public void signal(int signal, long currentTime) {
-		logger.error(	String.format("Peer [%s] SIGNAL! %s" ,
-				this.nodeId, protocol.statusStr()));
 		switch (signal) {
 		case 1:
 			// TODO Uwe/Alex should we have any signals to our nodes?
 			// Maybe useful later during experiments
 			// Maybe print current file status for debugging purpose
-			logger.error(	String.format("Peer [%s] %s" ,
-							this.nodeId, protocol.statusStr()));
 			break;
 		default:
 			logger.error(String.format("Peer [%s] Received Unknown Signal [%d]",
@@ -153,7 +159,6 @@ public class Peer extends BandwidthPeer {
 		logger.info(String.format("Peer [%s] RequestNext NextFrom [%s] %s",
 				this.nodeId, selectNextChunkFrom, protocol.statusStr()));
 
-		// TODO this returns null sometimes, WHY?
 		if (selectNextChunkFrom != null) {
 			this.sendMsg(TorrentConfig.TRACKER, new Message("GET_CHUNK_REQ",
 					selectNextChunkFrom));
@@ -307,7 +312,7 @@ public class Peer extends BandwidthPeer {
 				protocol.statusStr()));
 	}
 
-	// ----------------------------------------------------------------------------------
+	//----------------------------------------------------------------------------------
 	// From Seeder
 	// Notification that I have completed a chunk download
 	private void handleFinishDownloadSegmentEvent(NodeId srcId, String chunkStr) {
@@ -326,11 +331,9 @@ public class Peer extends BandwidthPeer {
 
 		this.sendMsg(TorrentConfig.TRACKER, new Message("PUT_CHUNK", chunkStr));
 
-//		logger.info(String.format("Peer [%s] finished downloading chunk "
-//				+ "[%s] from [%s] Tracker notified %s", this.nodeId, chunkStr,
-//				srcId, protocol.statusStr()));
-		logger.error(	String.format("Peer [%s] Received [%s] %s", 
-						this.nodeId, chunkStr, protocol.chunksStr()));
+		logger.debug(String.format("Peer [%s] finished downloading chunk "
+				+ "[%s] from [%s] Tracker notified %s", this.nodeId, chunkStr,
+				srcId, protocol.statusStr()));
 	}
 
 	// ----------------------------------------------------------------------------------
@@ -388,8 +391,14 @@ public class Peer extends BandwidthPeer {
 						handleHandshakeNackEvent(srcId, data);
 					}
 				});
+		
+		this.addEventListener(new String("LEAVE"),
+				new PeerEventListener() {
+					public void receivedEvent(NodeId srcId, Message data) {
+						handleLeaveEvent(srcId);
+					}
+				});
 	}
-
 	// ----------------------------------------------------------------------------------
 	public void restore(String str) {
 		// TODO Uwe/Alex put stuff here?
@@ -400,7 +409,7 @@ public class Peer extends BandwidthPeer {
 		// TODO Uwe/Alex do we need this method, for:
 		// --> Debugging?
 		// --> Logging?
-		return null;
+		return protocol.statusStr();
 	}
 
 	// ----------------------------------------------------------------------------------

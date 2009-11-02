@@ -33,8 +33,12 @@ public class GlobalFileStatus {
 			chunk = validChunks.remove(validChunksIndex);
 			GlobalChunkStatus chunkStatus = chunks.get(chunk);
 			seeder = chunkStatus.getRandomSeeder();
-		} while (seeder == null);
+		} while ( seeder == null && validChunks.size() > 0 );
 
+		if (seeder == null) {
+			return null;
+		}
+		
 		return seeder.toString() + ":" + chunk.toString();
 	}
 

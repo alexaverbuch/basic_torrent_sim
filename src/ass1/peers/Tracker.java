@@ -22,8 +22,8 @@ public class Tracker extends AbstractPeer {
 	static Logger logger = Logger.getLogger(Tracker.class);
 
 	// Directory of where to get next Chunks
-	private GlobalFileStatus fileStatus = new GlobalFileStatus(
-			TorrentConfig.CHUNK_COUNT, TorrentConfig.SEED);
+	private GlobalFileStatus fileStatus = 
+		new GlobalFileStatus(TorrentConfig.CHUNK_COUNT, TorrentConfig.SEED);
 
 	// ----------------------------------------------------------------------------------
 	public void init(NodeId nodeId, AbstractLink link, Bandwidth bandwidth,
@@ -35,27 +35,40 @@ public class Tracker extends AbstractPeer {
 
 	// ----------------------------------------------------------------------------------
 	public void create(long currentTime) {
-		logger.error(String.format("Tracker [%s] created [%d]", this.nodeId,
+		logger.debug(String.format("Tracker [%s] created [%d]", this.nodeId,
 				currentTime));
 		this.overlay.add(this.nodeId);
 	}
 
 	// ----------------------------------------------------------------------------------
 	public void join(long currentTime) {
-		logger.error(String.format("Tracker [%s] joined [%d]", this.nodeId,
+		logger.error(String.format("ERROR! Tracker [%s] joined [%d]", this.nodeId,
 				currentTime));
 	}
 
 	// ----------------------------------------------------------------------------------
 	public void leave(long currentTime) {
-		logger.error(String.format("Tracker [%s] leaving [%d]", this.nodeId,
+		logger.error(String.format("ERROR! Tracker [%s] leaving [%d]", this.nodeId,
 				currentTime));
 		this.sendSim(new Message("LEAVE_GRANTED", null));
 	}
 
 	// ----------------------------------------------------------------------------------
+	// From Peer
+	// Notification that they have left the network
+	private void handleLeaveEvent(NodeId srcId) {
+		logger.debug(String.format(
+				"Tracker [%s] detects leave of [%s]... BYE!",
+				this.nodeId, srcId));
+
+		String stateChanges = fileStatus.removeSeeder(srcId);
+		
+		logger.info(String.format("Tracker [%s] %s", this.nodeId, stateChanges));
+	}
+	
+	// ----------------------------------------------------------------------------------
 	public void failure(NodeId failedId, long currentTime) {
-		logger.error(String.format(
+		logger.debug(String.format(
 				"Tracker [%s] detects failure of [%s] at time [%d]... BOOM!",
 				this.nodeId, failedId, currentTime));
 
@@ -76,11 +89,8 @@ public class Tracker extends AbstractPeer {
 
 	// ----------------------------------------------------------------------------------
 	public void signal(int signal, long currentTime) {
-		logger.error(	String.format("Peer [%s] SIGNAL! %s" ,
-				this.nodeId, fileStatus.toString()));
-		
 		switch (signal) {
-		case 1:
+		case 2:
 			// TODO should we have any signals to our nodes?
 			// Maybe useful later during experiments
 			// Maybe print current file status for debugging purpose
@@ -134,6 +144,15 @@ public class Tracker extends AbstractPeer {
 	private void handleGetChunkReqEvent(NodeId srcId, Message data) {
 		ArrayList<Integer> selectNextChunkFrom = selectNextChunkFrom(data.data);
 		String chunkAndSeeder = fileStatus.getRandomFrom(selectNextChunkFrom);
+		
+		if (chunkAndSeeder == null) {
+//			chunkAndSeeder = srcId + ":" + 0; //FIXME HACK!!!
+//			this.sendMsg(srcId, new Message("GET_CHUNK_RESP", chunkAndSeeder));
+
+			logger.info(String.format(
+					"Tracker [%s] no Seeder found for [%s] to [%s]", 
+					this.nodeId, data.data, srcId));
+		}
 
 		this.sendMsg(srcId, new Message("GET_CHUNK_RESP", chunkAndSeeder));
 
@@ -168,6 +187,13 @@ public class Tracker extends AbstractPeer {
 				new PeerEventListener() {
 					public void receivedEvent(NodeId srcId, Message data) {
 						handleGetChunkReqEvent(srcId, data);
+					}
+				});
+		
+		this.addEventListener(new String("LEAVE"),
+				new PeerEventListener() {
+					public void receivedEvent(NodeId srcId, Message data) {
+						handleLeaveEvent(srcId);
 					}
 				});
 	}

@@ -68,8 +68,7 @@ public class TorrentProtocol {
 		for (int i = 0; i < activeDownloads.size(); i++) {
 			String tempActDown = activeDownloads.get(i);
 
-			String seederStr = tempActDown.substring(0, tempActDown
-					.indexOf(":"));
+			String seederStr = tempActDown.substring(0, tempActDown.indexOf(":"));
 			if (seederStr.equals(friend)) {
 				activeDownloadsToRemove.add(tempActDown);
 			}
@@ -240,16 +239,14 @@ public class TorrentProtocol {
 			// use activeDownloads.size() to track actual downloads
 
 			// downloads--;
-			logger.error(String.format("Peer [%s] addDownload [SLOTS FULL] [%d] %s",
+			logger.debug(String.format("Peer [%s] addDownload [SLOTS FULL] [%d] %s",
 					this.nodeId, activeDownloads.size(), statusStr()));
 
 			return false;
 		}
-
-		String entryStr = seeder + ":" + chunkStr;
-
+		
 		// Not important who the seeder is, we just do not want duplicates
-		if (activeDownContains(chunkStr) == true) {
+		if (activeDownContainsChunk(chunkStr) == true) {
 			// NOTE: "downloads" is incremented optimistically when requesting
 			// chunk from Tracker
 			// --> In current implementation Tracker only returns 1 chunk per
@@ -264,7 +261,16 @@ public class TorrentProtocol {
 			downloads--;
 			return false;
 		}
+		
+		// Only allow one download per seeder at any one time (fairness)
+		if (activeDownContainsSeeder(seeder.toString()) == true) {
+			logger.info(String.format("Peer [%s] already downloading from seeder [%s] %s",
+					this.nodeId, seeder.toString(), statusStr()));
 
+			downloads--;
+			return false;
+		}
+		
 		if (exFriends.contains(seeder.toString()) == true) {
 			// Node recently left/failed
 			// Let cleanup-method/failed-handler take care of cleanup
@@ -276,6 +282,7 @@ public class TorrentProtocol {
 			return false;
 		}
 
+		String entryStr = seeder + ":" + chunkStr;
 		activeDownloads.add(entryStr);
 		return true;
 	}
@@ -403,7 +410,7 @@ public class TorrentProtocol {
 			if (requiredChunks.contains(Integer.toString(i)) == false) {
 				// have already
 				result += "+";
-			} else if (activeDownContains(Integer.toString(i)) == true) {
+			} else if (activeDownContainsChunk(Integer.toString(i)) == true) {
 				// downloading
 				result += "~";
 			} else {
@@ -437,7 +444,7 @@ public class TorrentProtocol {
 		return result;
 	}
 
-	private boolean activeDownContains(String chunkIndex) {
+	private boolean activeDownContainsChunk(String chunkIndex) {
 		for (int i = 0; i < activeDownloads.size(); i++) {
 			String entryStr = activeDownloads.get(i);
 			String chunkStr = entryStr.substring(entryStr.indexOf(":") + 1);
@@ -448,11 +455,22 @@ public class TorrentProtocol {
 		return false;
 	}
 
+	private boolean activeDownContainsSeeder(String seeder) {
+		for (int i = 0; i < activeDownloads.size(); i++) {
+			String entryStr = activeDownloads.get(i);
+			String seederStr = entryStr.substring(0,entryStr.indexOf(":"));
+			if (seeder.equals(seederStr)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	public String selectNextChunkFrom() {
 		String result = "";
 		for (int i = 0; i < TorrentConfig.CHUNK_COUNT; i++) {
 			if (	requiredChunks.contains(Integer.toString(i)) == true
-					&& activeDownContains(Integer.toString(i)) == false) {
+					&& activeDownContainsChunk(Integer.toString(i)) == false) {
 				result += i + ":";
 			}
 		}
