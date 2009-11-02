@@ -38,7 +38,7 @@ delay: 5000
 type: lottery
 peer: ass1.peers.Peer
 link: sicsim.network.links.ReliableLink
-count: 50
+count: 500
 interval: 10
 join: 30
 leave: 0
@@ -46,4 +46,11 @@ failure: 20
 ---
 ### Scenario 7 ###
 type: delay
-delay: 1000000
+delay: 10000000
+---
+### Scenario 8 ###
+type: signal
+count: 50
+interval: 10
+signal: 1
+

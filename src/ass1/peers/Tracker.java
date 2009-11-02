@@ -1,8 +1,6 @@
 package ass1.peers;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Random;
 import java.util.StringTokenizer;
 
 import org.apache.log4j.Logger;
@@ -37,7 +35,7 @@ public class Tracker extends AbstractPeer {
 
 	// ----------------------------------------------------------------------------------
 	public void create(long currentTime) {
-		logger.debug(String.format("Tracker [%s] created [%d]", this.nodeId,
+		logger.error(String.format("Tracker [%s] created [%d]", this.nodeId,
 				currentTime));
 		this.overlay.add(this.nodeId);
 	}
@@ -56,16 +54,14 @@ public class Tracker extends AbstractPeer {
 	}
 
 	// ----------------------------------------------------------------------------------
-	// FIXME maybe Tracker can register EVERY peer so it can remove them from
-	// FileStatus?
 	public void failure(NodeId failedId, long currentTime) {
-		logger.debug(String.format(
+		logger.error(String.format(
 				"Tracker [%s] detects failure of [%s] at time [%d]... BOOM!",
 				this.nodeId, failedId, currentTime));
 
-		// FIXME Uwe/Alex check if this is correct
-		logger.debug(String.format("Tracker [%s] %s", this.nodeId, fileStatus
-				.removeSeeder(failedId)));
+		String stateChanges = fileStatus.removeSeeder(failedId);
+		
+		logger.info(String.format("Tracker [%s] %s", this.nodeId, stateChanges));
 	}
 
 	// ----------------------------------------------------------------------------------
@@ -80,6 +76,9 @@ public class Tracker extends AbstractPeer {
 
 	// ----------------------------------------------------------------------------------
 	public void signal(int signal, long currentTime) {
+		logger.error(	String.format("Peer [%s] SIGNAL! %s" ,
+				this.nodeId, fileStatus.toString()));
+		
 		switch (signal) {
 		case 1:
 			// TODO should we have any signals to our nodes?
@@ -101,7 +100,7 @@ public class Tracker extends AbstractPeer {
 
 		this.failureDetector.register(srcId, this.nodeId);
 
-		logger.debug(String.format("Tracker [%s] registered Leecher [%s]",
+		logger.info(String.format("Tracker [%s] registered Leecher [%s]",
 				this.nodeId, srcId));
 	}
 
@@ -115,7 +114,7 @@ public class Tracker extends AbstractPeer {
 
 		failureDetector.register(srcId, this.nodeId);
 
-		logger.debug(String.format("Tracker [%s] registered Seeder [%s]",
+		logger.info(String.format("Tracker [%s] registered Seeder [%s]",
 				this.nodeId, srcId));
 	}
 
@@ -123,11 +122,12 @@ public class Tracker extends AbstractPeer {
 	private void handlePutChunkEvent(NodeId srcId, Message data) {
 		Integer index = Integer.parseInt(data.data);
 
-		fileStatus.addSeeder(index, srcId);
+		if ( fileStatus.addSeeder(index, srcId) ) {
+			logger.info(String.format(
+					"Tracker [%s] put chunk [%d] for peer [%s]%n%s", this.nodeId,
+					index, srcId, fileStatus));
+		}
 
-		logger.debug(String.format(
-				"Tracker [%s] put chunk [%d] for peer [%s]%n%s", this.nodeId,
-				index, srcId, fileStatus));
 	}
 
 	// ----------------------------------------------------------------------------------
@@ -137,7 +137,7 @@ public class Tracker extends AbstractPeer {
 
 		this.sendMsg(srcId, new Message("GET_CHUNK_RESP", chunkAndSeeder));
 
-		logger.debug(String.format(
+		logger.info(String.format(
 				"Tracker [%s] sent chunk response [%s] to [%s]", this.nodeId,
 				chunkAndSeeder, srcId));
 	}

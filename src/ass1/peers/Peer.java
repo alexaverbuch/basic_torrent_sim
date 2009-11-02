@@ -44,7 +44,7 @@ public class Peer extends BandwidthPeer {
 	// ----------------------------------------------------------------------------------
 	public void join(long currentTime) {
 		if (this.overlay.getNodes().size() == 0) {
-			logger.debug(String.format("Peer [%s] joined (before tracker)",
+			logger.error(String.format("ERROR! Peer [%s] joined (before tracker)",
 					this.nodeId));
 			return;
 		}
@@ -62,7 +62,7 @@ public class Peer extends BandwidthPeer {
 
 			this.sendMsg(TorrentConfig.TRACKER, new Message("REGISTER", null));
 
-			logger.debug(String.format("Peer [%s] (Leecher) joined [%d] %s",
+			logger.error(String.format("Peer [%s] (Leecher) joined [%d] %s",
 					this.nodeId, currentTime, protocol.statusStr()));
 		}
 
@@ -83,7 +83,7 @@ public class Peer extends BandwidthPeer {
 	public void failure(NodeId failedId, long currentTime) {
 		this.protocol.cleanupFriendFailure(failedId.toString());
 
-		logger.debug(String.format("Peer [%s] detected failure of [%s] %s",
+		logger.info(String.format("Peer [%s] detected failure of [%s] %s",
 				this.nodeId, failedId, protocol.statusStr()));
 	}
 
@@ -98,14 +98,18 @@ public class Peer extends BandwidthPeer {
 
 	// ----------------------------------------------------------------------------------
 	public void signal(int signal, long currentTime) {
+		logger.error(	String.format("Peer [%s] SIGNAL! %s" ,
+				this.nodeId, protocol.statusStr()));
 		switch (signal) {
 		case 1:
 			// TODO Uwe/Alex should we have any signals to our nodes?
 			// Maybe useful later during experiments
 			// Maybe print current file status for debugging purpose
+			logger.error(	String.format("Peer [%s] %s" ,
+							this.nodeId, protocol.statusStr()));
 			break;
 		default:
-			logger.debug(String.format("Tracker [%s] get unknown signal [%d]",
+			logger.error(String.format("Peer [%s] Received Unknown Signal [%d]",
 					this.nodeId, signal));
 		}
 	}
@@ -120,7 +124,7 @@ public class Peer extends BandwidthPeer {
 			// No need to GET more Chunks, we are seeding
 			if (seeding == false) {
 				seeding = true;
-				logger.debug(String.format(
+				logger.info(String.format(
 						"Peer [%s] **********SEEDING********** %s",
 						this.nodeId, protocol.statusStr()));
 			}
@@ -146,7 +150,7 @@ public class Peer extends BandwidthPeer {
 
 		String selectNextChunkFrom = this.protocol.selectNextChunkFrom();
 
-		logger.debug(String.format("Peer [%s] RequestNext NextFrom [%s] %s",
+		logger.info(String.format("Peer [%s] RequestNext NextFrom [%s] %s",
 				this.nodeId, selectNextChunkFrom, protocol.statusStr()));
 
 		// TODO this returns null sometimes, WHY?
@@ -170,7 +174,7 @@ public class Peer extends BandwidthPeer {
 
 		if (this.protocol.addDownload(seeder, chunkStr) == false) {
 			// Can not handshake with Seeder
-			logger.error(String.format("Peer [%s] can not attempt handshake "
+			logger.info(String.format("Peer [%s] can not attempt handshake "
 					+ "with [%s] for chunk [%s] %s", this.nodeId, seederStr,
 					chunkStr, protocol.statusStr()));
 
@@ -184,7 +188,7 @@ public class Peer extends BandwidthPeer {
 		this.sendMsg(new NodeId(seederStr), new Message("HANDSHAKE_REQ",
 				chunkStr));
 
-		logger.debug(String.format(
+		logger.info(String.format(
 				"Peer [%s] sent handshake request to [%s] for chunk [%s] %s",
 				this.nodeId, seederStr, chunkStr, protocol.statusStr()));
 	}
@@ -196,7 +200,7 @@ public class Peer extends BandwidthPeer {
 			// Can not upload Chunk to Leecher
 			this.sendMsg(srcId, new Message("HANDSHAKE_NACK", data.data));
 
-			logger.debug(String.format("Peer [%s] rejected handshake request "
+			logger.info(String.format("Peer [%s] rejected handshake request "
 					+ "for chunk [%s] from [%s] %s", this.nodeId, data.data,
 					srcId, protocol.statusStr()));
 
@@ -209,7 +213,7 @@ public class Peer extends BandwidthPeer {
 
 		this.sendMsg(srcId, new Message("HANDSHAKE_ACK", data.data));
 
-		logger.debug(String.format("Peer [%s] accepted handshake request for "
+		logger.info(String.format("Peer [%s] accepted handshake request for "
 				+ "chunk [%s] from " + "[%s] %s", this.nodeId, data.data,
 				srcId, protocol.statusStr()));
 	}
@@ -220,7 +224,7 @@ public class Peer extends BandwidthPeer {
 		if (this.protocol.hasDownload(srcId, data.data) == false) {
 			// Can not download Chunk from Seeder
 			// Do nothing, Seeder must have failed
-			logger.debug(String.format("Peer [%s] aborted download for chunk "
+			logger.info(String.format("Peer [%s] aborted download for chunk "
 					+ "[%s] from [%s] - failure? %s", this.nodeId, data.data,
 					srcId, protocol.statusStr()));
 
@@ -229,7 +233,7 @@ public class Peer extends BandwidthPeer {
 
 		this.sendMsg(srcId, new Message("DOWNLOAD_CHUNK_REQ", data.data));
 
-		logger.debug(String.format("Peer [%s] sent download request for chunk "
+		logger.info(String.format("Peer [%s] sent download request for chunk "
 				+ "[%s] to [%s] %s", this.nodeId, data.data, srcId, protocol
 				.statusStr()));
 	}
@@ -240,7 +244,7 @@ public class Peer extends BandwidthPeer {
 		String chunkStr = data.data.substring(data.data.indexOf(":") + 1);
 
 		if (protocol.cancelDownload(srcId, chunkStr)) {
-			logger.debug(String.format("Peer [%s] NACK! Handshake [%s:%s] %s",
+			logger.info(String.format("Peer [%s] NACK! Handshake [%s:%s] %s",
 					this.nodeId, srcId, chunkStr, protocol.statusStr()));
 		}
 	}
@@ -253,7 +257,7 @@ public class Peer extends BandwidthPeer {
 			// Failure may have occurred
 			// Do nothing, cleanup was/will be handled when in failureDetector
 			// handler
-			logger.debug(String.format("Peer [%s] rejected download request "
+			logger.info(String.format("Peer [%s] rejected download request "
 					+ "from [%s] for chunk " + "[%s] %s", this.nodeId, srcId,
 					chunkStr, protocol.statusStr()));
 
@@ -262,7 +266,7 @@ public class Peer extends BandwidthPeer {
 
 		this.startSendSegment(srcId, chunkStr);
 
-		logger.debug(String.format("Peer [%s] accepted download request from "
+		logger.info(String.format("Peer [%s] accepted download request from "
 				+ "[%s] for chunk [%s] %s", this.nodeId, srcId, chunkStr,
 				protocol.statusStr()));
 	}
@@ -277,14 +281,14 @@ public class Peer extends BandwidthPeer {
 			// Do nothing, cleanup was/will be handled when in failureDetector
 			// handler
 
-			logger.debug(String.format("Peer [%s] could not download chunk "
+			logger.info(String.format("Peer [%s] could not download chunk "
 					+ "[%s] from [%s] %s", this.nodeId, chunkStr, srcId,
 					protocol.statusStr()));
 
 			return;
 		}
 
-		logger.debug(String.format("Peer [%s] Downloading... chunk "
+		logger.info(String.format("Peer [%s] Downloading... chunk "
 				+ "[%s] from [%s] %s", this.nodeId, chunkStr, srcId, protocol
 				.statusStr()));
 	}
@@ -298,7 +302,7 @@ public class Peer extends BandwidthPeer {
 		String leecherStr = data.data.substring(0, data.data.indexOf(":"));
 		String chunkStr = data.data.substring(data.data.indexOf(":") + 1);
 
-		logger.debug(String.format("Peer [%s] finished uploading chunk "
+		logger.info(String.format("Peer [%s] finished uploading chunk "
 				+ "[%s] to [%s] %s", this.nodeId, chunkStr, leecherStr,
 				protocol.statusStr()));
 	}
@@ -313,7 +317,7 @@ public class Peer extends BandwidthPeer {
 			// Do nothing, cleanup was/will be handled when in failureDetector
 			// handler
 
-			logger.debug(String.format("Peer [%s] could not finish "
+			logger.info(String.format("Peer [%s] could not finish "
 					+ "downloading chunk [%s] from [%s] %s", this.nodeId,
 					chunkStr, srcId, protocol.statusStr()));
 
@@ -322,9 +326,11 @@ public class Peer extends BandwidthPeer {
 
 		this.sendMsg(TorrentConfig.TRACKER, new Message("PUT_CHUNK", chunkStr));
 
-		logger.debug(String.format("Peer [%s] finished downloading chunk "
-				+ "[%s] from [%s] Tracker notified %s", this.nodeId, chunkStr,
-				srcId, protocol.statusStr()));
+//		logger.info(String.format("Peer [%s] finished downloading chunk "
+//				+ "[%s] from [%s] Tracker notified %s", this.nodeId, chunkStr,
+//				srcId, protocol.statusStr()));
+		logger.error(	String.format("Peer [%s] Received [%s] %s", 
+						this.nodeId, chunkStr, protocol.chunksStr()));
 	}
 
 	// ----------------------------------------------------------------------------------

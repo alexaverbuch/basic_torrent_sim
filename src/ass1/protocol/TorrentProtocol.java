@@ -15,6 +15,7 @@ public class TorrentProtocol {
 	int downloads = 0;
 
 	ArrayList<String> friends = new ArrayList<String>(); // Nodes I know
+	ArrayList<String> exFriends = new ArrayList<String>(); // Friends that left/failed
 	ArrayList<String> activeUploads = new ArrayList<String>(); // "seeder:chunk"
 	ArrayList<String> activeDownloads = new ArrayList<String>(); // "seeder:chunk"
 	ArrayList<String> requiredChunks = new ArrayList<String>(); // chunkIndexStr
@@ -54,6 +55,10 @@ public class TorrentProtocol {
 
 		// Cleanup hesitantUploads
 		cleanupActiveUploads(friend);
+
+		if (exFriends.contains(friend) == false) {
+			exFriends.add(friend);
+		}
 	}
 
 	private void cleanupActiveDownloads(String friend) {
@@ -110,7 +115,7 @@ public class TorrentProtocol {
 		}
 
 		if (requiredChunks.contains(chunkIndex) == true) {
-			// requiredChunks contains all the chunks I DON NOT HAVE
+			// requiredChunks contains all the chunks I DO NOT HAVE
 			// Can not seed a chunk that I do not have
 			return false;
 		}
@@ -118,6 +123,12 @@ public class TorrentProtocol {
 		String entryStr = leecher + ":" + chunkIndex;
 		if (activeUploads.contains(entryStr) == true) {
 			// Already trying to upload this chunk to this leecher
+			return false;
+		}
+
+		if (exFriends.contains(leecher) == true) {
+			// Node recently left/failed
+			// This is probably the result of an old handshake request
 			return false;
 		}
 
@@ -137,6 +148,16 @@ public class TorrentProtocol {
 			return false;
 		}
 
+		if (exFriends.contains(leecher.toString()) == true) {
+			// activeDownloads should NOT contain seeder if exFriends does
+			// This may mean cleanup method, or protocol are incorrect
+			
+			logger.error(String.format("Peer [%s] Protocol Error in hasUpload." +
+										" exFriends & activeDownloads both contain leecher %s",
+										this.nodeId, statusStr()));
+			return false;
+		}
+
 		return true;
 	}
 
@@ -146,6 +167,17 @@ public class TorrentProtocol {
 	public boolean cancelUpload(NodeId leecher, Integer chunk) {
 		String entryStr = leecher + ":" + chunk;
 		if (activeUploads.contains(entryStr) == false) {
+			// Can not cancel an upload that does not exist
+			return false;
+		}
+
+		if (exFriends.contains(leecher.toString()) == true) {
+			// activeDownloads should NOT contain seeder if exFriends does
+			// This may mean cleanup method, or protocol are incorrect
+			
+			logger.error(String.format("Peer [%s] Protocol Error in cancelUpload." +
+										" exFriends & activeDownloads both contain leecher %s",
+										this.nodeId, statusStr()));
 			return false;
 		}
 
@@ -165,6 +197,16 @@ public class TorrentProtocol {
 			return false;
 		}
 
+		if (exFriends.contains(leecher.toString()) == true) {
+			// activeDownloads should NOT contain seeder if exFriends does
+			// This may mean cleanup method, or protocol are incorrect
+			
+			logger.error(String.format("Peer [%s] Protocol Error in successfulUpload." +
+										" exFriends & activeDownloads both contain leecher %s",
+										this.nodeId, statusStr()));
+			return false;
+		}
+		
 		activeUploads.remove(entryStr);
 		uploads--;
 		return true;
@@ -198,7 +240,7 @@ public class TorrentProtocol {
 			// use activeDownloads.size() to track actual downloads
 
 			// downloads--;
-			logger.error(String.format("Peer [%s] slots full [%d] %s",
+			logger.error(String.format("Peer [%s] addDownload [SLOTS FULL] [%d] %s",
 					this.nodeId, activeDownloads.size(), statusStr()));
 
 			return false;
@@ -216,9 +258,20 @@ public class TorrentProtocol {
 			// happens fast enough
 			// SO: "downloads" must be decremented if download can not progress
 
-			logger.error(String.format("Peer [%s] [DUPLICATE] %s", this.nodeId,
-					statusStr()));
+			logger.debug(String.format("Peer [%s] chunk [%s] [DUPLICATE] %s",
+					this.nodeId, chunkStr, statusStr()));
 
+			downloads--;
+			return false;
+		}
+
+		if (exFriends.contains(seeder.toString()) == true) {
+			// Node recently left/failed
+			// Let cleanup-method/failed-handler take care of cleanup
+			// Cleanup "downloads" here
+			// cleanup-method/failed-handler will not cleanup "downloads", only:
+			// --> activeDownloads
+			// --> activeUploads
 			downloads--;
 			return false;
 		}
@@ -244,6 +297,17 @@ public class TorrentProtocol {
 			return false;
 		}
 
+		if (exFriends.contains(seeder.toString()) == true) {
+			// activeDownloads should NOT contain seeder if exFriends does
+			// This may mean cleanup method, or protocol are incorrect
+			
+			logger.error(String.format("Peer [%s] Protocol Error in hasDownload." +
+										" exFriends & activeDownloads both contain seeder %s",
+										this.nodeId, statusStr()));
+			return false;
+		}
+		
+		
 		return true;
 	}
 
@@ -253,11 +317,25 @@ public class TorrentProtocol {
 	public boolean cancelDownload(NodeId seeder, String chunkStr) {
 		String entryStr = seeder + ":" + chunkStr;
 
-		// if ( activeDownloads.contains(entryStr) == false ) {
-		// // Nothing to cancel
-		// return false;
-		// }
+		if ( activeDownloads.contains(entryStr) == false ) {
+			// TODO Alex: this IF was commented out for some reason
+			// --> Maybe it is incorrect, but I can't remember why now...?
+			
+			// Nothing to cancel
+			// May have been cleaned up already due to leave/failure
+			return false;
+		}
 
+		if (exFriends.contains(seeder.toString()) == true) {
+			// activeDownloads should NOT contain seeder if exFriends does
+			// This may mean cleanup method, or protocol are incorrect
+			
+			logger.error(String.format("Peer [%s] Protocol Error in cancelDownload." +
+										" exFriends & activeDownloads both contain seeder %s",
+										this.nodeId, statusStr()));
+			return false;
+		}
+		
 		activeDownloads.remove(entryStr);
 		downloads--;
 		return true;
@@ -279,11 +357,21 @@ public class TorrentProtocol {
 		if (requiredChunks.contains(chunkStr) == false) {
 			// Already had piece, no point in storing it again
 			// This should never happen
-			logger.error(String.format("successfulDownload [%s] %s", chunkStr,
-					chunksStr()));
+			logger.error(	String.format("Peer [%s] Protocol Error in successfulDownload [%s] %s", 
+							chunkStr, chunksStr()));
 			return false;
 		}
 
+		if (exFriends.contains(seeder.toString()) == true) {
+			// activeDownloads should NOT contain seeder if exFriends does
+			// This may mean cleanup method, or protocol are incorrect
+			
+			logger.error(String.format("Peer [%s] Protocol Error in successfulDownload." +
+										" exFriends & activeDownloads both contain seeder %s",
+										this.nodeId, statusStr()));
+			return false;
+		}
+		
 		activeDownloads.remove(entryStr);
 		requiredChunks.remove(chunkStr);
 		downloads--;
@@ -308,7 +396,7 @@ public class TorrentProtocol {
 				+ "] ";
 	}
 
-	private String chunksStr() {
+	public String chunksStr() {
 		String result = "";
 		for (int i = 0; i < TorrentConfig.CHUNK_COUNT; i++) {
 
@@ -333,7 +421,7 @@ public class TorrentProtocol {
 		return result;
 	}
 
-	private String friendsStr() {
+	public String friendsStr() {
 		String result = "";
 
 		for (String friend : friends) {
@@ -363,9 +451,8 @@ public class TorrentProtocol {
 	public String selectNextChunkFrom() {
 		String result = "";
 		for (int i = 0; i < TorrentConfig.CHUNK_COUNT; i++) {
-			if (requiredChunks.contains(Integer.toString(i)) == true
+			if (	requiredChunks.contains(Integer.toString(i)) == true
 					&& activeDownContains(Integer.toString(i)) == false) {
-				// activeDownloads.contains(Integer.toString(i)) == false ) {
 				result += i + ":";
 			}
 		}

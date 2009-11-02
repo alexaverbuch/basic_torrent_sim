@@ -10,6 +10,8 @@ import sicsim.types.NodeId;
 
 public class GlobalFileStatus {
 	private ArrayList<GlobalChunkStatus> chunks = new ArrayList<GlobalChunkStatus>();
+	ArrayList<String> exNodes = new ArrayList<String>(); // Nodes that left/failed
+
 	private Random RNG;
 
 	public GlobalFileStatus(int chunkCount, int seed) {
@@ -37,20 +39,26 @@ public class GlobalFileStatus {
 	}
 
 	public boolean addSeeder(Integer index, NodeId seeder) {
+		// Check if Node has left/failed previously
+		// --> Current assumption is that once Nodes leave, they never return
+		// --> If Node has left/failed, this is a late message
+		if (exNodes.contains(seeder.toString()) == true) {
+			return false;
+		}
+		
 		GlobalChunkStatus chunk = chunks.get(index);
 		return chunk.addSeeder(seeder);
 	}
 
+	// Handle failure/leaving of Nodes
 	public String removeSeeder(NodeId seeder) {
+		// Current assumption is that once Nodes leave, they never return
+		if (exNodes.contains(seeder.toString()) == false) {
+			exNodes.add(seeder.toString());
+		}
+		
 		String result = "\n";
 		for (int i = 0; i < TorrentConfig.CHUNK_COUNT; i++) {
-			// GlobalChunkStatus tempChunkStatus = chunks.remove(i);
-			// result += "BEFORE[" + seeder + "]" +
-			// tempChunkStatus.toString()+"\n";
-			// tempChunkStatus.removeSeeder(seeder);
-			// result += "AFTER [" + seeder + "]" +
-			// tempChunkStatus.toString()+"\n";
-			// chunks.add(tempChunkStatus);
 			GlobalChunkStatus tempChunkStatusBefore = chunks.get(i);
 			result += "BEFORE[" + seeder + "]"
 					+ tempChunkStatusBefore.toString() + "\n";
@@ -60,14 +68,6 @@ public class GlobalFileStatus {
 					+ tempChunkStatusAfter.toString() + "\n";
 		}
 		return result;
-	}
-
-	public String chunksToString() {
-		return null;
-	}
-
-	public String peersToString() {
-		return null;
 	}
 
 	public String toString() {

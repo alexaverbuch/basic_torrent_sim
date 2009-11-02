@@ -43,7 +43,7 @@ public class GlobalChunkStatus {
 	}
 
 	public String toString() {
-		String str = "Chunk[" + ID + "] - Seeders";
+		String str = "Chunk[" + ID + "][" + seeders.size() + "] - Seeders";
 		Iterator<NodeId> seedersIter = this.seeders.iterator();
 
 		while (seedersIter.hasNext())
