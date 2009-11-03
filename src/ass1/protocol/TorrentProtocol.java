@@ -5,22 +5,21 @@ import java.util.ArrayList;
 import org.apache.log4j.Logger;
 
 import ass1.common.TorrentConfig;
-import ass1.peers.Tracker;
 import sicsim.types.NodeId;
 
 public class TorrentProtocol {
 	static Logger logger = Logger.getLogger(TorrentProtocol.class);
 
-	int uploads = 0;
-	int downloads = 0;
+	private int uploads = 0;
+	private int downloads = 0;
 
-	ArrayList<String> friends = new ArrayList<String>(); // Nodes I know
-	ArrayList<String> exFriends = new ArrayList<String>(); // Friends that left/failed
-	ArrayList<String> activeUploads = new ArrayList<String>(); // "seeder:chunk"
-	ArrayList<String> activeDownloads = new ArrayList<String>(); // "seeder:chunk"
-	ArrayList<String> requiredChunks = new ArrayList<String>(); // chunkIndexStr
+	private ArrayList<String> friends = new ArrayList<String>(); // Nodes I know
+	private ArrayList<String> exFriends = new ArrayList<String>(); // Friends that left/failed
+	private ArrayList<String> activeUploads = new ArrayList<String>(); // "seeder:chunk"
+	private ArrayList<String> activeDownloads = new ArrayList<String>(); // "seeder:chunk"
+	private ArrayList<String> requiredChunks = new ArrayList<String>(); // chunkIndexStr
 
-	NodeId nodeId = null;
+	private NodeId nodeId = null;
 
 	public TorrentProtocol(NodeId nodeId, boolean seeding) {
 		super();
@@ -109,6 +108,7 @@ public class TorrentProtocol {
 	// --> Entry is not in requiredChunks (e.g. I have requested chunk)
 	// TRUE implies an upload will be attempted
 	public boolean addUpload(NodeId leecher, String chunkIndex) {
+		
 		if (uploads >= TorrentConfig.MAX_UPLOADS) {
 			return false;
 		}
@@ -140,6 +140,7 @@ public class TorrentProtocol {
 	// --> Entry exists in activeUploads
 	// --> Upload request can continue
 	public boolean hasUpload(NodeId leecher, String chunkStr) {
+		
 		String entryStr = leecher + ":" + chunkStr;
 
 		if (activeUploads.contains(entryStr) == false) {
@@ -164,6 +165,7 @@ public class TorrentProtocol {
 	// --> Entry existed (and was removed)
 	// TRUE implies failure/NACK occurred & upload will be terminated
 	public boolean cancelUpload(NodeId leecher, Integer chunk) {
+		
 		String entryStr = leecher + ":" + chunk;
 		if (activeUploads.contains(entryStr) == false) {
 			// Can not cancel an upload that does not exist
@@ -189,6 +191,7 @@ public class TorrentProtocol {
 	// --> Entry existed in activeUploads (and was removed)
 	// TRUE implies upload completed successfully & state has been updated
 	public boolean successfulUpload(NodeId leecher, String chunkStr) {
+		
 		String entryStr = leecher + ":" + chunkStr;
 
 		if (activeUploads.contains(entryStr) == false) {
@@ -217,6 +220,7 @@ public class TorrentProtocol {
 
 	// "downloads" only used to decide if request to be sent to Tracker
 	public boolean tryTakeDownloadSlot() {
+		
 		if (downloads < TorrentConfig.MAX_DOWNLOADS) {
 			downloads++;
 			return true;
@@ -234,6 +238,7 @@ public class TorrentProtocol {
 	// --> Enough download slots are available
 	// TRUE implies a download will be attempted
 	public boolean addDownload(NodeId seeder, String chunkStr) {
+		
 		if (activeDownloads.size() >= TorrentConfig.MAX_DOWNLOADS) {
 			// "downloads" only used to decide if request to be sent to Tracker
 			// use activeDownloads.size() to track actual downloads
@@ -292,6 +297,7 @@ public class TorrentProtocol {
 	// --> Handshake succeeded
 	// --> Download request can continue
 	public boolean hasDownload(NodeId seeder, String chunkStr) {
+		
 		String entryStr = seeder + ":" + chunkStr;
 
 		// Check for "seeder:chunk" rather than only chunk
@@ -322,6 +328,7 @@ public class TorrentProtocol {
 	// --> Entry existed (and was removed)
 	// TRUE implies failure/NACK occurred & download will be terminated
 	public boolean cancelDownload(NodeId seeder, String chunkStr) {
+		
 		String entryStr = seeder + ":" + chunkStr;
 
 		if ( activeDownloads.contains(entryStr) == false ) {
@@ -353,6 +360,7 @@ public class TorrentProtocol {
 	// --> Entry existed in requiredChunks (and was removed)
 	// TRUE implies download completed succcessfully & state has been updated
 	public boolean successfulDownload(NodeId seeder, String chunkStr) {
+		
 		String entryStr = seeder + ":" + chunkStr;
 
 		if (activeDownloads.contains(entryStr) == false) {
@@ -390,6 +398,7 @@ public class TorrentProtocol {
 	// =========================================================================
 
 	public int getRequiredCount() {
+		
 		return requiredChunks.size();
 	}
 

@@ -73,10 +73,8 @@ public class Peer extends BandwidthPeer {
 	public void leave(long currentTime) {
 		logger.info(String.format("Peer [%s] Leaving...",this.nodeId));
 		
-//		update protocol to not do anything else in future
-		
 		this.broadcast(new Message("LEAVE", null));
-		this.sendSim(new Message("LEAVE GRANTED", null));	
+		this.sendSim(new Message("LEAVE_GRANTED", null));	
 	}
 
 	// ----------------------------------------------------------------------------------

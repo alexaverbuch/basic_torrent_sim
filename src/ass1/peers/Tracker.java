@@ -146,9 +146,26 @@ public class Tracker extends AbstractPeer {
 		String chunkAndSeeder = fileStatus.getRandomFrom(selectNextChunkFrom);
 		
 		if (chunkAndSeeder == null) {
-//			chunkAndSeeder = srcId + ":" + 0; //FIXME HACK!!!
-//			this.sendMsg(srcId, new Message("GET_CHUNK_RESP", chunkAndSeeder));
-
+			// Do nothing here, send nothing back to Peer, this results in:
+			// --> Peer will wait forever
+			// --> Peer will make no progress and never become Seeder
+			// This is OK because:
+			// --> If Tracker can not find a Seeder for Chunk, there is no Seeder
+			
+			// FIXME: maybe a Timeout is better, because there is SLIGHT possibility of:
+			// --> Seeder uploaded Chunk to Leecher successfully
+			// --> Seeder failed
+			// --> Leecher sent Put Chunk to Tracker
+			// --> Tracker detected failure and cleaned up state
+			// --> Tracker received this GetChunkReq (but there is no Seeder)
+			// --> Tracker received Put message
+			// --> Leecher becomes Seeder for that Chunk (now there is Seeder)
+			
+			// TODO: Put timeout on Tracker
+			// --> Timeout is 2x longer than Failure Detector period
+			// --> If Chunk available after that period, send reply
+			// --> If Chunk NOT available after that period, do nothing
+			
 			logger.info(String.format(
 					"Tracker [%s] no Seeder found for [%s] to [%s]", 
 					this.nodeId, data.data, srcId));
