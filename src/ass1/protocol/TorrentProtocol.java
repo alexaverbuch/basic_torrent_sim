@@ -219,15 +219,49 @@ public class TorrentProtocol {
 	// =========================================================================
 
 	// "downloads" only used to decide if request to be sent to Tracker
-	public boolean tryTakeDownloadSlot() {
+	public String tryReserveDownloadSlots() {
+		String selectNextChunksFrom = this.selectNextChunksFrom();
 		
-		if (downloads < TorrentConfig.MAX_DOWNLOADS) {
-			downloads++;
-			return true;
+		if ( selectNextChunksFrom == null) {
+			return null;
 		}
-		return false;
+		
+		if ( downloads < TorrentConfig.MAX_DOWNLOADS ) {
+			int slotsToReserve = slotsToReserve();
+			downloads += slotsToReserve;
+			
+			return selectNextChunksFrom + "-" + slotsToReserve;
+		}
+		
+		return null;
+	}
+	
+	private int slotsToReserve() {
+		int notDownloading = requiredChunks.size() - activeDownloads.size();
+		int slotsAvailable = TorrentConfig.MAX_DOWNLOADS - downloads;
+		
+//		return Math.min(notDownloading, slotsAvailable);
+		return 1;
 	}
 
+	private String selectNextChunksFrom() {
+		String result = "";
+		for (int i = 0; i < TorrentConfig.CHUNK_COUNT; i++) {
+			if (	requiredChunks.contains(Integer.toString(i)) == true
+					&& activeDownContainsChunk(Integer.toString(i)) == false) {
+				result += i + ":";
+			}
+		}
+
+		if (result.length() > 0) {
+			result = result.substring(0, result.length() - 1);
+		} else {
+			result = null;
+		}
+
+		return result;
+	}
+	
 	// "downloads" only used to decide if request to be sent to Tracker
 	public boolean downloadingLastChunks() {
 		return (requiredChunks.size() - activeDownloads.size()) <= 0;
@@ -332,9 +366,6 @@ public class TorrentProtocol {
 		String entryStr = seeder + ":" + chunkStr;
 
 		if ( activeDownloads.contains(entryStr) == false ) {
-			// TODO Alex: this IF was commented out for some reason
-			// --> Maybe it is incorrect, but I can't remember why now...?
-			
 			// Nothing to cancel
 			// May have been cleaned up already due to leave/failure
 			return false;
@@ -397,8 +428,7 @@ public class TorrentProtocol {
 	// ********************************MISC*************************************
 	// =========================================================================
 
-	public int getRequiredCount() {
-		
+	public int getRequiredCount() {		
 		return requiredChunks.size();
 	}
 
@@ -473,23 +503,5 @@ public class TorrentProtocol {
 			}
 		}
 		return false;
-	}
-
-	public String selectNextChunkFrom() {
-		String result = "";
-		for (int i = 0; i < TorrentConfig.CHUNK_COUNT; i++) {
-			if (	requiredChunks.contains(Integer.toString(i)) == true
-					&& activeDownContainsChunk(Integer.toString(i)) == false) {
-				result += i + ":";
-			}
-		}
-
-		if (result.length() > 0) {
-			result = result.substring(0, result.length() - 1);
-		} else {
-			result = null;
-		}
-
-		return result;
 	}
 }

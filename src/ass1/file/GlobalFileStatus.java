@@ -24,22 +24,29 @@ public class GlobalFileStatus {
 		// RNG = new Random();
 	}
 
-	public String getRandomFrom(ArrayList<Integer> validChunks) {
+	public ArrayList<String> getRandomFrom(ArrayList<Integer> validChunks, int requests) {
+		ArrayList<String> responses = new ArrayList<String>();
+		
 		Integer chunk = null;
-		NodeId seeder = null;
+		NodeId seeder = null;		
 
 		do {
 			int validChunksIndex = RNG.nextInt(validChunks.size());
 			chunk = validChunks.remove(validChunksIndex);
 			GlobalChunkStatus chunkStatus = chunks.get(chunk);
 			seeder = chunkStatus.getRandomSeeder();
-		} while ( seeder == null && validChunks.size() > 0 );
+			
+			if (seeder != null) {
+				requests--;
+				responses.add(seeder.toString() + ":" + chunk.toString());
+			}
+		} while ( requests > 0 && validChunks.size() > 0 );
 
-		if (seeder == null) {
+		if (responses.size() == 0) {
 			return null;
 		}
 		
-		return seeder.toString() + ":" + chunk.toString();
+		return responses;
 	}
 
 	public boolean addSeeder(Integer index, NodeId seeder) {

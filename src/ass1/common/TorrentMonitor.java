@@ -5,6 +5,7 @@ import java.util.Iterator;
 import org.apache.log4j.Logger;
 
 import ass1.peers.Peer;
+import ass1.peers.Tracker;
 import sicsim.network.core.Monitor;
 import sicsim.types.NodeId;
 
@@ -31,6 +32,11 @@ public class TorrentMonitor extends Monitor {
 		NodeId nodeId;
 		Peer peer;
 		
+		int failures = 0;
+		int leaves = 0;
+		int joins = 0;
+		int messages = 0;
+		
 		int trackers = 0;
 		int seeders = 0;
 		int leechers = 0;
@@ -45,21 +51,35 @@ public class TorrentMonitor extends Monitor {
 				 if (peer.protocol.getRequiredCount() > 0) {
 					 leechers++;
 				 } else {
+
 					seeders++; 
-				 }					 
+				 }
+				 messages += peer.getSentMessages();
 
 				 System.out.println(String.format("Peer[%s] %s", peer.getId(), peer.protocol.chunksStr()));
 			 } else {
 				 trackers++;
+				 Tracker tracker = (Tracker)this.network.getNode(nodeId);
+				 joins = tracker.getJoins();
+				 failures = tracker.getFailures();
+				 leaves = tracker.getLeaves();
+				 messages += tracker.getSentMessages();
 			 }
 		 }
 		 
 		 System.out.println(String.format("-------------------------------------------------------------"));
 		 System.out.println(String.format("Nodes in overlay:\t%d",this.network.size()));
+		 System.out.println();
 		 System.out.println(String.format("Trackers:\t\t%d",trackers));
 		 System.out.println(String.format("Seeders:\t\t%d",seeders));
 		 System.out.println(String.format("Leechers:\t\t%d",leechers));
-		 System.out.println(String.format("Time (mS):\t\t%d",currentTime-10000));
+		 System.out.println();
+		 System.out.println(String.format("Joins:\t\t\t%d",joins));
+		 System.out.println(String.format("Failures:\t\t%d",failures));
+		 System.out.println(String.format("Leaves:\t\t\t%d",leaves));
+		 System.out.println();
+		 System.out.println(String.format("Messages sent:\t\t%d",messages));
+		 System.out.println(String.format("Time taken:\t\t%dmS",currentTime));		 
 		 System.out.println(String.format("-------------------------------------------------------------"));
 			
 	}
@@ -81,5 +101,6 @@ public class TorrentMonitor extends Monitor {
 		// }
 		//		
 		// FileIO.write(str, fileName);
+//		System.err.println("lkj;lkjl;kjlk;jl;k");
 	}
 }

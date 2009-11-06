@@ -24,6 +24,11 @@ public class Tracker extends AbstractPeer {
 	// Directory of where to get next Chunks
 	private GlobalFileStatus fileStatus = 
 		new GlobalFileStatus(TorrentConfig.CHUNK_COUNT, TorrentConfig.SEED);
+	
+	private int joins = 0;
+	private int leaves = 0;
+	private int failures = 0;
+	private int sentMessages = 0;
 
 	// ----------------------------------------------------------------------------------
 	public void init(NodeId nodeId, AbstractLink link, Bandwidth bandwidth,
@@ -46,6 +51,14 @@ public class Tracker extends AbstractPeer {
 				currentTime));
 	}
 
+
+	// ----------------------------------------------------------------------------------
+	// From Peer
+	// Notification that they have left the network
+	private void handleStartExperimentEvent(NodeId srcId) {
+		logger.debug(String.format("Peer [%s] START_EXPERIMENT", this.nodeId));
+	}
+	
 	// ----------------------------------------------------------------------------------
 	public void leave(long currentTime) {
 		logger.error(String.format("ERROR! Tracker [%s] leaving [%d]", this.nodeId,
@@ -57,6 +70,8 @@ public class Tracker extends AbstractPeer {
 	// From Peer
 	// Notification that they have left the network
 	private void handleLeaveEvent(NodeId srcId) {
+		leaves++;
+
 		logger.debug(String.format(
 				"Tracker [%s] detects leave of [%s]... BYE!",
 				this.nodeId, srcId));
@@ -68,6 +83,8 @@ public class Tracker extends AbstractPeer {
 	
 	// ----------------------------------------------------------------------------------
 	public void failure(NodeId failedId, long currentTime) {
+		failures++;
+
 		logger.debug(String.format(
 				"Tracker [%s] detects failure of [%s] at time [%d]... BOOM!",
 				this.nodeId, failedId, currentTime));
@@ -90,10 +107,9 @@ public class Tracker extends AbstractPeer {
 	// ----------------------------------------------------------------------------------
 	public void signal(int signal, long currentTime) {
 		switch (signal) {
-		case 2:
-			// TODO should we have any signals to our nodes?
-			// Maybe useful later during experiments
-			// Maybe print current file status for debugging purpose
+		case 1:
+			// Inform all Peers to Start Experiment
+			this.broadcast(new Message("START_EXPERIMENT", null));
 			break;
 		default:
 			logger.warn(String.format("Tracker [%s] gets unknown signal [%d]",
@@ -103,6 +119,8 @@ public class Tracker extends AbstractPeer {
 
 	// ----------------------------------------------------------------------------------
 	private void handleRegisterEvent(NodeId srcId) {
+		joins++;
+		
 		Boolean[] buffer = new Boolean[TorrentConfig.CHUNK_COUNT];
 		for (int i = 0; i < TorrentConfig.CHUNK_COUNT; i++) {
 			buffer[i] = new Boolean(Boolean.FALSE);
@@ -116,6 +134,8 @@ public class Tracker extends AbstractPeer {
 
 	// ----------------------------------------------------------------------------------
 	private void handleRegisterSeedEvent(NodeId srcId) {
+		joins++;
+		
 		Boolean[] buffer = new Boolean[TorrentConfig.CHUNK_COUNT];
 		for (int i = 0; i < TorrentConfig.CHUNK_COUNT; i++) {
 			buffer[i] = new Boolean(Boolean.TRUE);
@@ -142,10 +162,14 @@ public class Tracker extends AbstractPeer {
 
 	// ----------------------------------------------------------------------------------
 	private void handleGetChunkReqEvent(NodeId srcId, Message data) {
-		ArrayList<Integer> selectNextChunkFrom = selectNextChunkFrom(data.data);
-		String chunkAndSeeder = fileStatus.getRandomFrom(selectNextChunkFrom);
+		String chunksStr = data.data.substring(0, data.data.indexOf("-"));
+		String requestsStr = data.data.substring(data.data.indexOf("-") + 1);
+		int requests = Integer.parseInt(requestsStr);
 		
-		if (chunkAndSeeder == null) {
+		ArrayList<Integer> selectNextChunkFrom = selectNextChunkFrom(chunksStr);		
+		ArrayList<String> responses = fileStatus.getRandomFrom(selectNextChunkFrom, requests);
+		
+		if (responses == null) {
 			// Do nothing here, send nothing back to Peer, this results in:
 			// --> Peer will wait forever
 			// --> Peer will make no progress and never become Seeder
@@ -169,13 +193,19 @@ public class Tracker extends AbstractPeer {
 			logger.info(String.format(
 					"Tracker [%s] no Seeder found for [%s] to [%s]", 
 					this.nodeId, data.data, srcId));
+			
+			return;
+		}
+		
+		for (String response : responses) {
+			sentMessages++;
+			this.sendMsg(srcId, new Message("GET_CHUNK_RESP", response));
+
+			logger.info(String.format(
+					"Tracker [%s] sent chunk response [%s] to [%s]", this.nodeId,
+					response, srcId));
 		}
 
-		this.sendMsg(srcId, new Message("GET_CHUNK_RESP", chunkAndSeeder));
-
-		logger.info(String.format(
-				"Tracker [%s] sent chunk response [%s] to [%s]", this.nodeId,
-				chunkAndSeeder, srcId));
 	}
 
 	// ----------------------------------------------------------------------------------
@@ -213,36 +243,27 @@ public class Tracker extends AbstractPeer {
 						handleLeaveEvent(srcId);
 					}
 				});
+		
+		this.addEventListener(new String("START_EXPERIMENT"),
+				new PeerEventListener() {
+					public void receivedEvent(NodeId srcId, Message data) {
+						handleStartExperimentEvent(srcId);
+					}
+				});
+		
 	}
 
 	// ----------------------------------------------------------------------------------
-	// FIXME Uwe/Alex find out what this does
-	// Is this used to:
-	// --> Simulate crash/recovery?
-	// --> ...?
 	public void restore(String str) {
-		// String friendsList = PatternMatching.getStrValue(str, "friends:");
-		// String friendParts[] = friendsList.split(",");
-		// for (int i = 0; i < friendParts.length; i++)
-		// this.friends.addElement(friendParts[i]);
-		//		
-		// String failedList = PatternMatching.getStrValue(str, "failed:");
-		// String failedParts[] = failedList.split(",");
-		// for (int i = 0; i < failedParts.length; i++)
-		// this.failedFriends.addElement(failedParts[i]);
 	}
 
 	// ----------------------------------------------------------------------------------
 	public void syncMethod(long currentTime) {
-		// TODO Uwe/Alex find out if Tracker needs any "polling" type activity
-		// Alex: can't think of anything, Tracker seems to just be a passive
-		// server
 	}
 
 	// ----------------------------------------------------------------------------------
 	public String toString() {
-		// TODO Use this somewhere?
-		// Alex: For debugging if necessary, but its formatting can be improved
+		// For debugging if necessary
 		return fileStatus.toString();
 	}
 
@@ -257,4 +278,22 @@ public class Tracker extends AbstractPeer {
 
 		return result;
 	}
+	
+	public int getJoins() {
+		return joins;
+	}
+
+	public int getLeaves() {
+		return leaves;
+	}
+
+	public int getFailures() {
+		return failures;
+	}
+
+	public int getSentMessages() {
+		return sentMessages;
+	}
+
 }
+

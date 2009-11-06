@@ -24,7 +24,9 @@ public class Peer extends BandwidthPeer {
 	// Used to reduce repetitive printouts so output log is shorter
 	// Seeder only prints ***SEEDING*** once
 	private boolean seeding = false;
-
+	private boolean startExperiment = false;
+	private int sentMessages = 0;
+	
 	// ----------------------------------------------------------------------------------
 	public void init(NodeId nodeId, AbstractLink link, Bandwidth bandwidth,
 			FailureDetector failureDetector, OverlayNetwork overlay,
@@ -33,8 +35,8 @@ public class Peer extends BandwidthPeer {
 				TorrentConfig.MAX_UPLOAD_BW, Integer.MAX_VALUE);
 		this.failureDetector.register(new NodeId(TorrentConfig.TRACKER),
 				this.nodeId);
-	}
-
+	}	
+	
 	// ----------------------------------------------------------------------------------
 	public void create(long currentTime) {
 		logger.debug(String.format("Peer [%s] created [%d]", this.nodeId,
@@ -52,6 +54,7 @@ public class Peer extends BandwidthPeer {
 		if (this.overlay.getNodes().size() == 1) {
 			protocol = new TorrentProtocol(nodeId, true);
 
+			sentMessages++;
 			this.sendMsg(TorrentConfig.TRACKER, new Message("REGISTER_SEED",
 					null));
 
@@ -60,6 +63,7 @@ public class Peer extends BandwidthPeer {
 		} else {
 			protocol = new TorrentProtocol(nodeId, false);
 
+			sentMessages++;
 			this.sendMsg(TorrentConfig.TRACKER, new Message("REGISTER", null));
 
 			logger.debug(String.format("Peer [%s] (Leecher) joined [%d] %s",
@@ -69,6 +73,15 @@ public class Peer extends BandwidthPeer {
 		this.overlay.add(this.nodeId);
 	}
 
+	// ----------------------------------------------------------------------------------
+	// From Peer
+	// Notification that they have left the network
+	private void handleStartExperimentEvent(NodeId srcId) {
+		this.startExperiment = true;
+
+		logger.debug(String.format("Peer [%s] START_EXPERIMENT", this.nodeId));
+	}
+	
 	// ----------------------------------------------------------------------------------
 	public void leave(long currentTime) {
 		logger.info(String.format("Peer [%s] Leaving...",this.nodeId));
@@ -108,9 +121,10 @@ public class Peer extends BandwidthPeer {
 	public void signal(int signal, long currentTime) {
 		switch (signal) {
 		case 1:
-			// TODO Uwe/Alex should we have any signals to our nodes?
-			// Maybe useful later during experiments
-			// Maybe print current file status for debugging purpose
+			// Inform all Peers to Start Experiment
+			logger.debug(String.format("Peer [%s] Received Signal [%d]",
+					this.nodeId, signal));
+			this.broadcast(new Message("START_EXPERIMENT", null));
 			break;
 		default:
 			logger.error(String.format("Peer [%s] Received Unknown Signal [%d]",
@@ -123,10 +137,16 @@ public class Peer extends BandwidthPeer {
 	// Request new Chunk if necessary
 	// TODO Uwe/Alex find out where the frequency of this event is configured
 	public void syncMethod(long currentTime) {
-
+		
+		if (this.startExperiment == false) {
+			return;
+		}
+		
 		if (this.protocol.getRequiredCount() == 0) {
 			// No need to GET more Chunks, we are seeding
 			if (seeding == false) {
+				// TODO Save "currentTime for Finish_Time?
+				// --> Might make for an interesting plot
 				seeding = true;
 				logger.info(String.format(
 						"Peer [%s] **********SEEDING********** %s",
@@ -135,35 +155,27 @@ public class Peer extends BandwidthPeer {
 			return;
 		}
 
-		if (this.protocol.tryTakeDownloadSlot() == false) {
-			// All download slots busy
-			// Wait until next SYNC event and try again
-			// System.out.println( "Peer [" + this.nodeId + "] " +
-			// "Ignore SYNC [Max Uploaders] " +
-			// protocol.statusStr() );
-			return;
-		}
-
 		if (this.protocol.downloadingLastChunks()) {
 			// All required chunks are already downloading
-			// System.out.println( "Peer [" + this.nodeId + "] " +
-			// "Downloading Final Chunks... " +
-			// protocol.statusStr() );
+			logger.info(String.format("Peer [%s] Downloading Final Chunks... %s",
+					this.nodeId, protocol.statusStr()));
 			return;
 		}
 
-		String selectNextChunkFrom = this.protocol.selectNextChunkFrom();
+		String selectNextChunkFrom = this.protocol.tryReserveDownloadSlots();
+
+		if (selectNextChunkFrom == null) {
+			// All download slots busy
+			// Wait until next SYNC event and try again
+			return;
+		}
 
 		logger.info(String.format("Peer [%s] RequestNext NextFrom [%s] %s",
 				this.nodeId, selectNextChunkFrom, protocol.statusStr()));
 
-		if (selectNextChunkFrom != null) {
-			this.sendMsg(TorrentConfig.TRACKER, new Message("GET_CHUNK_REQ",
-					selectNextChunkFrom));
-		} else {
-			logger.error(String.format("Peer [%s] NextFrom [%s] %s",
-					this.nodeId, selectNextChunkFrom, protocol.statusStr()));
-		}
+		sentMessages++;
+		this.sendMsg( TorrentConfig.TRACKER, new Message("GET_CHUNK_REQ",
+				selectNextChunkFrom));
 	}
 
 	// ----------------------------------------------------------------------------------
@@ -188,6 +200,7 @@ public class Peer extends BandwidthPeer {
 			this.failureDetector.register(seeder, this.nodeId);
 		}
 
+		sentMessages++;
 		this.sendMsg(new NodeId(seederStr), new Message("HANDSHAKE_REQ",
 				chunkStr));
 
@@ -201,6 +214,7 @@ public class Peer extends BandwidthPeer {
 	private void handleHandshakeReqEvent(NodeId srcId, Message data) {
 		if (protocol.addUpload(srcId, data.data) == false) {
 			// Can not upload Chunk to Leecher
+			sentMessages++;
 			this.sendMsg(srcId, new Message("HANDSHAKE_NACK", data.data));
 
 			logger.info(String.format("Peer [%s] rejected handshake request "
@@ -214,6 +228,7 @@ public class Peer extends BandwidthPeer {
 			this.failureDetector.register(srcId, this.nodeId);
 		}
 
+		sentMessages++;
 		this.sendMsg(srcId, new Message("HANDSHAKE_ACK", data.data));
 
 		logger.info(String.format("Peer [%s] accepted handshake request for "
@@ -234,6 +249,7 @@ public class Peer extends BandwidthPeer {
 			return;
 		}
 
+		sentMessages++;
 		this.sendMsg(srcId, new Message("DOWNLOAD_CHUNK_REQ", data.data));
 
 		logger.info(String.format("Peer [%s] sent download request for chunk "
@@ -327,6 +343,7 @@ public class Peer extends BandwidthPeer {
 			return;
 		}
 
+		sentMessages++;
 		this.sendMsg(TorrentConfig.TRACKER, new Message("PUT_CHUNK", chunkStr));
 
 		logger.debug(String.format("Peer [%s] finished downloading chunk "
@@ -396,6 +413,14 @@ public class Peer extends BandwidthPeer {
 						handleLeaveEvent(srcId);
 					}
 				});
+		
+		this.addEventListener(new String("START_EXPERIMENT"),
+				new PeerEventListener() {
+					public void receivedEvent(NodeId srcId, Message data) {
+						handleStartExperimentEvent(srcId);
+					}
+				});
+		
 	}
 	// ----------------------------------------------------------------------------------
 	public void restore(String str) {
@@ -420,6 +445,7 @@ public class Peer extends BandwidthPeer {
 		int uploadBwPerNode = this.uploadBandwidth / TorrentConfig.MAX_UPLOADS;
 		int delay = (TorrentConfig.CHUNK_SIZE * TorrentConfig.TIME_UNIT)
 				/ uploadBwPerNode;
+		sentMessages++;
 		this.sendMsg(dest, new Message("DOWNLOAD_CHUNK_RESP", chunkStr));
 		this.loopback(new Message("STOP_SEND_CHUNK", dest + ":" + chunkStr),
 				delay);
@@ -431,6 +457,7 @@ public class Peer extends BandwidthPeer {
 		String leecherStr = data.substring(0, data.indexOf(":"));
 		String chunkStr = data.substring(data.indexOf(":") + 1);
 
+		sentMessages++;
 		this.sendMsg(new NodeId(leecherStr), new Message(
 				"DOWNLOAD_CHUNK_FINISH", chunkStr));
 
@@ -441,4 +468,9 @@ public class Peer extends BandwidthPeer {
 	public int getNumberOfCompleteSeg() {
 		return TorrentConfig.CHUNK_COUNT - this.protocol.getRequiredCount();
 	}
+	
+	public int getSentMessages() {
+		return sentMessages;
+	}
+
 }

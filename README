@@ -1,3 +1,11 @@
 The entire Eclipse Java Project is included in this repository
 All SicSim classes are in the JAR file
 Warning, maybe some paths will be broken (JRE, JAR, etc)
+
+This is an implementation of a (really) simplified BitTorrent protocol.
+Tracker is centralized. 
+Peers inform tracker of all data they can seed.
+Peers must request pieces from the Tracker, which randomly allocates pieces that requesting peers do not already have.
+No clever game theory stuff here.
+
+Simulation results are interesting though.
