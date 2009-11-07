@@ -109,6 +109,8 @@ public class Tracker extends AbstractPeer {
 		switch (signal) {
 		case 1:
 			// Inform all Peers to Start Experiment
+			logger.debug(String.format("Peer [%s] Received Signal [%d]",
+					this.nodeId, signal));
 			this.broadcast(new Message("START_EXPERIMENT", null));
 			break;
 		default:
@@ -190,7 +192,7 @@ public class Tracker extends AbstractPeer {
 			// --> If Chunk available after that period, send reply
 			// --> If Chunk NOT available after that period, do nothing
 			
-			logger.info(String.format(
+			logger.error(String.format(
 					"Tracker [%s] no Seeder found for [%s] to [%s]", 
 					this.nodeId, data.data, srcId));
 			

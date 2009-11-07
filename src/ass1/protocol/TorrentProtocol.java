@@ -404,7 +404,7 @@ public class TorrentProtocol {
 			// Already had piece, no point in storing it again
 			// This should never happen
 			logger.error(	String.format("Peer [%s] Protocol Error in successfulDownload [%s] %s", 
-							chunkStr, chunksStr()));
+							this.nodeId, chunkStr, chunksStr()));
 			return false;
 		}
 

@@ -122,8 +122,9 @@ public class Peer extends BandwidthPeer {
 		switch (signal) {
 		case 1:
 			// Inform all Peers to Start Experiment
-			logger.debug(String.format("Peer [%s] Received Signal [%d]",
+			logger.error(String.format("Peer [%s] Received Signal [%d]",
 					this.nodeId, signal));
+			this.startExperiment = true;
 			this.broadcast(new Message("START_EXPERIMENT", null));
 			break;
 		default:
