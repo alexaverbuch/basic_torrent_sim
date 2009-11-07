@@ -125,7 +125,7 @@ public class Tracker extends AbstractPeer {
 		
 		Boolean[] buffer = new Boolean[TorrentConfig.CHUNK_COUNT];
 		for (int i = 0; i < TorrentConfig.CHUNK_COUNT; i++) {
-			buffer[i] = new Boolean(Boolean.FALSE);
+			buffer[i] = Boolean.valueOf(true);
 		}
 
 		this.failureDetector.register(srcId, this.nodeId);
@@ -140,7 +140,7 @@ public class Tracker extends AbstractPeer {
 		
 		Boolean[] buffer = new Boolean[TorrentConfig.CHUNK_COUNT];
 		for (int i = 0; i < TorrentConfig.CHUNK_COUNT; i++) {
-			buffer[i] = new Boolean(Boolean.TRUE);
+			buffer[i] = Boolean.valueOf(true);
 			fileStatus.addSeeder(i, srcId);
 		}
 
@@ -213,40 +213,40 @@ public class Tracker extends AbstractPeer {
 	// ----------------------------------------------------------------------------------
 	public void registerEvents() {
 
-		this.addEventListener(new String("REGISTER"), new PeerEventListener() {
+		this.addEventListener("REGISTER", new PeerEventListener() {
 			public void receivedEvent(NodeId srcId, Message data) {
 				handleRegisterEvent(srcId);
 			}
 		});
 
-		this.addEventListener(new String("REGISTER_SEED"),
+		this.addEventListener("REGISTER_SEED",
 				new PeerEventListener() {
 					public void receivedEvent(NodeId srcId, Message data) {
 						handleRegisterSeedEvent(srcId);
 					}
 				});
 
-		this.addEventListener(new String("PUT_CHUNK"), new PeerEventListener() {
+		this.addEventListener("PUT_CHUNK", new PeerEventListener() {
 			public void receivedEvent(NodeId srcId, Message data) {
 				handlePutChunkEvent(srcId, data);
 			}
 		});
 
-		this.addEventListener(new String("GET_CHUNK_REQ"),
+		this.addEventListener("GET_CHUNK_REQ",
 				new PeerEventListener() {
 					public void receivedEvent(NodeId srcId, Message data) {
 						handleGetChunkReqEvent(srcId, data);
 					}
 				});
 		
-		this.addEventListener(new String("LEAVE"),
+		this.addEventListener("LEAVE",
 				new PeerEventListener() {
 					public void receivedEvent(NodeId srcId, Message data) {
 						handleLeaveEvent(srcId);
 					}
 				});
 		
-		this.addEventListener(new String("START_EXPERIMENT"),
+		this.addEventListener("START_EXPERIMENT",
 				new PeerEventListener() {
 					public void receivedEvent(NodeId srcId, Message data) {
 						handleStartExperimentEvent(srcId);

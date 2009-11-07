@@ -68,27 +68,27 @@ public class GlobalFileStatus {
 			exNodes.add(seeder.toString());
 		}
 		
-		String result = "\n";
+		StringBuffer result = new StringBuffer("\n");
 		for (int i = 0; i < TorrentConfig.CHUNK_COUNT; i++) {
 			GlobalChunkStatus tempChunkStatusBefore = chunks.get(i);
-			result += "BEFORE[" + seeder + "]"
-					+ tempChunkStatusBefore.toString() + "\n";
+			result.append("BEFORE[" + seeder + "]"
+					+ tempChunkStatusBefore.toString() + "\n");
 			tempChunkStatusBefore.removeSeeder(seeder);
 			GlobalChunkStatus tempChunkStatusAfter = chunks.get(i);
-			result += "AFTER [" + seeder + "]"
-					+ tempChunkStatusAfter.toString() + "\n";
+			result.append("AFTER [" + seeder + "]"
+					+ tempChunkStatusAfter.toString() + "\n");
 		}
-		return result;
+		return result.toString();
 	}
 
 	public String toString() {
-		String str = "---FileStatus---\n";
+		StringBuffer str = new StringBuffer("---FileStatus---\n");
 		Iterator<GlobalChunkStatus> chunksIter = this.chunks.iterator();
 
 		while (chunksIter.hasNext())
-			str += chunksIter.next() + "\n";
+			str.append(chunksIter.next() + "\n");
 
-		return str;
+		return str.toString();
 	}
 
 }

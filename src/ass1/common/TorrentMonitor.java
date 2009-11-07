@@ -56,7 +56,7 @@ public class TorrentMonitor extends Monitor {
 				 }
 				 messages += peer.getSentMessages();
 
-				 System.out.println(String.format("Peer[%s] %s", peer.getId(), peer.protocol.chunksStr()));
+				 System.out.println(String.format("Peer[%9s] %s", peer.getId(), peer.protocol.chunksStr()));
 			 } else {
 				 trackers++;
 				 Tracker tracker = (Tracker)this.network.getNode(nodeId);

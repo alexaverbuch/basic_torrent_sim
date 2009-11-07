@@ -122,7 +122,7 @@ public class Peer extends BandwidthPeer {
 		switch (signal) {
 		case 1:
 			// Inform all Peers to Start Experiment
-			logger.error(String.format("Peer [%s] Received Signal [%d]",
+			logger.debug(String.format("Peer [%s] Received Signal [%d]",
 					this.nodeId, signal));
 			this.startExperiment = true;
 			this.broadcast(new Message("START_EXPERIMENT", null));
@@ -373,49 +373,49 @@ public class Peer extends BandwidthPeer {
 			}
 		});
 
-		this.addEventListener(new String("STOP_SEND_CHUNK"),
+		this.addEventListener("STOP_SEND_CHUNK",
 				new PeerEventListener() {
 					public void receivedEvent(NodeId srcId, Message data) {
 						handleStopSendChunkEvent(srcId, data);
 					}
 				});
 
-		this.addEventListener(new String("GET_CHUNK_RESP"),
+		this.addEventListener("GET_CHUNK_RESP",
 				new PeerEventListener() {
 					public void receivedEvent(NodeId srcId, Message data) {
 						handleGetChunkRespEvent(srcId, data);
 					}
 				});
 
-		this.addEventListener(new String("HANDSHAKE_REQ"),
+		this.addEventListener("HANDSHAKE_REQ",
 				new PeerEventListener() {
 					public void receivedEvent(NodeId srcId, Message data) {
 						handleHandshakeReqEvent(srcId, data);
 					}
 				});
 
-		this.addEventListener(new String("HANDSHAKE_ACK"),
+		this.addEventListener("HANDSHAKE_ACK",
 				new PeerEventListener() {
 					public void receivedEvent(NodeId srcId, Message data) {
 						handleHandshakeAckEvent(srcId, data);
 					}
 				});
 
-		this.addEventListener(new String("HANDSHAKE_NACK"),
+		this.addEventListener("HANDSHAKE_NACK",
 				new PeerEventListener() {
 					public void receivedEvent(NodeId srcId, Message data) {
 						handleHandshakeNackEvent(srcId, data);
 					}
 				});
 		
-		this.addEventListener(new String("LEAVE"),
+		this.addEventListener("LEAVE",
 				new PeerEventListener() {
 					public void receivedEvent(NodeId srcId, Message data) {
 						handleLeaveEvent(srcId);
 					}
 				});
 		
-		this.addEventListener(new String("START_EXPERIMENT"),
+		this.addEventListener("START_EXPERIMENT",
 				new PeerEventListener() {
 					public void receivedEvent(NodeId srcId, Message data) {
 						handleStartExperimentEvent(srcId);

@@ -125,12 +125,12 @@ public class TorrentProtocol {
 			return false;
 		}
 
-		if (exFriends.contains(leecher) == true) {
+		if (exFriends.contains(leecher.toString()) == true) {
 			// Node recently left/failed
 			// This is probably the result of an old handshake request
 			return false;
 		}
-
+			
 		activeUploads.add(entryStr);
 		uploads++;
 		return true;
@@ -237,29 +237,27 @@ public class TorrentProtocol {
 	}
 	
 	private int slotsToReserve() {
-		int notDownloading = requiredChunks.size() - activeDownloads.size();
-		int slotsAvailable = TorrentConfig.MAX_DOWNLOADS - downloads;
-		
+//		int notDownloading = requiredChunks.size() - activeDownloads.size();
+//		int slotsAvailable = TorrentConfig.MAX_DOWNLOADS - downloads;
+//		
 //		return Math.min(notDownloading, slotsAvailable);
 		return 1;
 	}
 
 	private String selectNextChunksFrom() {
-		String result = "";
+		StringBuffer result = new StringBuffer();
 		for (int i = 0; i < TorrentConfig.CHUNK_COUNT; i++) {
 			if (	requiredChunks.contains(Integer.toString(i)) == true
 					&& activeDownContainsChunk(Integer.toString(i)) == false) {
-				result += i + ":";
+				result.append(i + ":");
 			}
 		}
 
 		if (result.length() > 0) {
-			result = result.substring(0, result.length() - 1);
+			return result.substring(0, result.length() - 1);
 		} else {
-			result = null;
+			return null;
 		}
-
-		return result;
 	}
 	
 	// "downloads" only used to decide if request to be sent to Tracker
@@ -403,7 +401,7 @@ public class TorrentProtocol {
 		if (requiredChunks.contains(chunkStr) == false) {
 			// Already had piece, no point in storing it again
 			// This should never happen
-			logger.error(	String.format("Peer [%s] Protocol Error in successfulDownload [%s] %s", 
+			logger.error(String.format("Peer [%s] Protocol Error in successfulDownload [%s] %s", 
 							this.nodeId, chunkStr, chunksStr()));
 			return false;
 		}
@@ -443,44 +441,40 @@ public class TorrentProtocol {
 	}
 
 	public String chunksStr() {
-		String result = "";
+		StringBuffer result = new StringBuffer();
 		for (int i = 0; i < TorrentConfig.CHUNK_COUNT; i++) {
 
 			if (requiredChunks.contains(Integer.toString(i)) == false) {
 				// have already
-				result += "+";
+				result.append("+");
 			} else if (activeDownContainsChunk(Integer.toString(i)) == true) {
 				// downloading
-				result += "~";
+				result.append("~");
 			} else {
 				// need
-				result += " ";
+				result.append(" ");
 			}
 		}
 
 		if (result.length() > 0) {
-			result = "Status [" + result + "]";
+			return "Status [" + result + "]";
 		} else {
-			result = "Status [ERR]";
+			return "Status [ERR]";
 		}
-
-		return result;
 	}
 
 	public String friendsStr() {
-		String result = "";
+		StringBuffer result = new StringBuffer();
 
 		for (String friend : friends) {
-			result += friend + ":";
+			result.append(friend + ":");
 		}
 
 		if (result.length() > 0) {
-			result = "[" + result + "]";
+			return "[" + result + "]";
 		} else {
-			result = "[]";
+			return "[]";
 		}
-
-		return result;
 	}
 
 	private boolean activeDownContainsChunk(String chunkIndex) {
