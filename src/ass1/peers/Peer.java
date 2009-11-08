@@ -101,6 +101,11 @@ public class Peer extends BandwidthPeer {
 				this.nodeId, srcId, protocol.statusStr()));
 	}
 	
+	private void handleImpoliteLeaveEvent() {
+		this.broadcast(new Message("LEAVE", null));
+		this.sendSim(new Message("LEAVE_GRANTED", null));	
+	}
+	
 	// ----------------------------------------------------------------------------------
 	public void failure(NodeId failedId, long currentTime) {
 		this.protocol.cleanupFriendFailure(failedId.toString());
@@ -154,6 +159,9 @@ public class Peer extends BandwidthPeer {
 				logger.info(String.format(
 						"Peer [%s] **********SEEDING********** %s",
 						this.nodeId, protocol.statusStr()));
+				if (this.nodeId.equals(TorrentConfig.SEEDER) == false) {
+					this.prepareToLeave();
+				}
 			}
 			return;
 		}
@@ -424,6 +432,12 @@ public class Peer extends BandwidthPeer {
 					}
 				});
 		
+		this.addEventListener("IMPOLITE_LEAVE",
+				new PeerEventListener() {
+					public void receivedEvent(NodeId srcId, Message data) {
+						handleImpoliteLeaveEvent();
+					}
+				});		
 	}
 	// ----------------------------------------------------------------------------------
 	public void restore(String str) {
@@ -467,6 +481,12 @@ public class Peer extends BandwidthPeer {
 		this.protocol.successfulUpload(new NodeId(leecherStr), chunkStr);
 	}
 
+	// ----------------------------------------------------------------------------------
+	// Leave after finishing download
+	public void prepareToLeave() {
+		this.loopback(new Message("IMPOLITE_LEAVE", null), TorrentConfig.POLITE_TIME);
+	}
+	
 	// ----------------------------------------------------------------------------------
 	public int getNumberOfCompleteSeg() {
 		return TorrentConfig.CHUNK_COUNT - this.protocol.getRequiredCount();

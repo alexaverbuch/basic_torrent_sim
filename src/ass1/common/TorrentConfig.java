@@ -12,4 +12,5 @@ public class TorrentConfig {
 	public static final NodeId SEEDER = new NodeId(-1, -1);
 	public static final int TIME_UNIT = 10;
 	public static final int SEED = 9999;
+	public static final int POLITE_TIME = 250;
 }
