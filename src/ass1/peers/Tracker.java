@@ -29,6 +29,7 @@ public class Tracker extends AbstractPeer {
 	private int leaves = 0;
 	private int failures = 0;
 	private int sentMessages = 0;
+	private long startTime = 0;
 
 	// ----------------------------------------------------------------------------------
 	public void init(NodeId nodeId, AbstractLink link, Bandwidth bandwidth,
@@ -111,6 +112,7 @@ public class Tracker extends AbstractPeer {
 			// Inform all Peers to Start Experiment
 			logger.debug(String.format("Peer [%s] Received Signal [%d]",
 					this.nodeId, signal));
+			this.startTime = currentTime;
 			this.broadcast(new Message("START_EXPERIMENT", null));
 			break;
 		default:
@@ -297,5 +299,8 @@ public class Tracker extends AbstractPeer {
 		return sentMessages;
 	}
 
+	public long getStartTime() {
+		return startTime;
+	}
 }
 

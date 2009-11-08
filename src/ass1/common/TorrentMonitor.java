@@ -36,6 +36,7 @@ public class TorrentMonitor extends Monitor {
 		int leaves = 0;
 		int joins = 0;
 		int messages = 0;
+		long startTime = 0;
 		
 		int trackers = 0;
 		int seeders = 0;
@@ -55,6 +56,7 @@ public class TorrentMonitor extends Monitor {
 					seeders++; 
 				 }
 				 messages += peer.getSentMessages();
+				 startTime += peer.getStartTime();
 
 				 System.out.println(String.format("Peer[%9s] %s", peer.getId(), peer.protocol.chunksStr()));
 			 } else {
@@ -64,6 +66,7 @@ public class TorrentMonitor extends Monitor {
 				 failures = tracker.getFailures();
 				 leaves = tracker.getLeaves();
 				 messages += tracker.getSentMessages();
+				 startTime += tracker.getStartTime();
 			 }
 		 }
 		 
@@ -79,7 +82,8 @@ public class TorrentMonitor extends Monitor {
 		 System.out.println(String.format("Leaves:\t\t\t%d",leaves));
 		 System.out.println();
 		 System.out.println(String.format("Messages sent:\t\t%d",messages));
-		 System.out.println(String.format("Time taken:\t\t%dmS",currentTime));		 
+		 System.out.println(String.format("Protocol Time:\t\t%d",currentTime-startTime));		 
+		 System.out.println(String.format("Simulation Time:\t%d",currentTime));		 
 		 System.out.println(String.format("-------------------------------------------------------------"));
 			
 	}

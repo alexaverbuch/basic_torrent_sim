@@ -26,6 +26,7 @@ public class Peer extends BandwidthPeer {
 	private boolean seeding = false;
 	private boolean startExperiment = false;
 	private int sentMessages = 0;
+	private long startTime = 0;
 	
 	// ----------------------------------------------------------------------------------
 	public void init(NodeId nodeId, AbstractLink link, Bandwidth bandwidth,
@@ -125,6 +126,7 @@ public class Peer extends BandwidthPeer {
 			logger.debug(String.format("Peer [%s] Received Signal [%d]",
 					this.nodeId, signal));
 			this.startExperiment = true;
+			this.startTime = currentTime;
 			this.broadcast(new Message("START_EXPERIMENT", null));
 			break;
 		default:
@@ -472,6 +474,10 @@ public class Peer extends BandwidthPeer {
 	
 	public int getSentMessages() {
 		return sentMessages;
+	}
+	
+	public long getStartTime() {
+		return startTime;
 	}
 
 }
