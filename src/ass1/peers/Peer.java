@@ -24,7 +24,13 @@ public class Peer extends BandwidthPeer {
 	// Used to reduce repetitive printouts so output log is shorter
 	// Seeder only prints ***SEEDING*** once
 	private boolean seeding = false;
-	private boolean startExperiment = false;
+	
+	// if set to false, use "signal: 1" to start experiment 
+	private boolean startExperiment = true;
+	
+	// if set to true, TorrentConfig.POLITE_TIME is used to decide "impolite leave" time
+	private boolean doImpoliteLeave = false;
+	
 	private int sentMessages = 0;
 	private long startTime = 0;
 	
@@ -484,7 +490,9 @@ public class Peer extends BandwidthPeer {
 	// ----------------------------------------------------------------------------------
 	// Leave after finishing download
 	public void prepareToLeave() {
-		this.loopback(new Message("IMPOLITE_LEAVE", null), TorrentConfig.POLITE_TIME);
+		if (doImpoliteLeave) {
+			this.loopback(new Message("IMPOLITE_LEAVE", null), TorrentConfig.POLITE_TIME);
+		}
 	}
 	
 	// ----------------------------------------------------------------------------------
