@@ -26,7 +26,7 @@ public class Peer extends BandwidthPeer {
 	private boolean seeding = false;
 	
 	// if set to false, use "signal: 1" to start experiment 
-	private boolean startExperiment = true;
+	private boolean startExperiment = false;
 	
 	// if set to true, TorrentConfig.POLITE_TIME is used to decide "impolite leave" time
 	private boolean doImpoliteLeave = false;
